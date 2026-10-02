@@ -1,0 +1,185 @@
+/* ==========================================================================
+   Laporan PDF Analisa Sentimen. Halaman terang dan tipografis untuk dibaca dan
+   dicetak; grafik ditangkap dari dashboard bertema cetak (terang), graf SNA tetap
+   gelap. Header dan footer dibuat Chrome (lihat scripts/laporan.py), bukan di sini.
+   ========================================================================== */
+:root{
+  --ink:#1d1d1b; --ink-2:#45443f; --ink-3:#6c6b65; --ink-4:#9a978f;
+  --line:#e6e3dc; --tint:#f6f4ef; --tint-2:#efece5; --paper:#ffffff;
+  --biru:#3987e5; --merah:#e66767; --abu:#8a877f; --kuning:#c98500;
+  --gelap:#131312; --gelap-2:#1b1b19;
+}
+*{box-sizing:border-box}
+html,body{margin:0; padding:0; background:var(--paper); color:var(--ink);
+  font-family:"Plus Jakarta Sans", ui-sans-serif, sans-serif; font-size:9.6pt; line-height:1.58;
+  -webkit-print-color-adjust:exact; print-color-adjust:exact}
+b,strong{font-weight:650}
+p{margin:0 0 8pt}
+
+/* ---------- sampul ---------- */
+.sampul{width:210mm; height:297mm; position:relative; overflow:hidden; background:var(--gelap); color:#ebe9e3;
+  padding:20mm 18mm 16mm; display:flex; flex-direction:column}
+.sp-atas{display:flex; align-items:center; justify-content:space-between; font-size:9pt; color:#908e86}
+.sp-merek{display:flex; align-items:center; gap:10px; color:#ebe9e3}
+.sp-merek svg{width:30px; height:30px}
+.sp-merek b{font-size:12pt; font-weight:700; letter-spacing:-.1px}
+.sp-judul{margin-top:30mm; max-width:160mm; position:relative; z-index:3}
+.sp-eyebrow{font-size:9pt; font-weight:600; letter-spacing:.3px; color:#908e86; text-transform:uppercase; margin:0 0 10pt}
+.sp-judul h1{font-size:32pt; line-height:1.08; font-weight:800; letter-spacing:-.8px; margin:0 0 10pt; color:#fffaf0}
+.sp-periode{font-size:13pt; font-weight:650; color:#7fb0ee; margin:0 0 14pt}
+.sp-lede{font-size:10.5pt; line-height:1.6; color:#c5c3ba; max-width:150mm}
+.sp-angka{display:grid; grid-template-columns:repeat(4,1fr); gap:1px; background:#2a2a27; border:1px solid #2a2a27;
+  border-radius:10px; overflow:hidden; margin-top:12mm; position:relative; z-index:3}
+.sp-angka div{background:var(--gelap-2); padding:10px 12px}
+.sp-angka small{display:block; font-size:7.5pt; color:#908e86; margin-bottom:2px}
+.sp-angka b{font-size:15pt; font-weight:750; color:#fffaf0; letter-spacing:-.3px}
+.sp-gambar{position:absolute; left:0; right:0; bottom:0; height:96mm; overflow:hidden; z-index:1}
+.sp-gambar img{width:100%; height:100%; object-fit:cover; object-position:center 45%; opacity:.55}
+.sp-gambar::after{content:""; position:absolute; inset:0;
+  background:linear-gradient(180deg, var(--gelap) 0%, rgba(19,19,18,.35) 35%, rgba(19,19,18,.1) 60%, rgba(19,19,18,.92) 100%)}
+.sp-kaki{position:absolute; left:18mm; right:18mm; bottom:12mm; display:flex; justify-content:space-between;
+  font-size:8pt; color:#c5c3ba; z-index:2}
+
+/* ---------- struktur isi ---------- */
+.bagian{break-before:page}
+.bagian:first-of-type{break-before:auto}
+.bab{margin:0 0 14pt; padding-bottom:10pt; border-bottom:1.2pt solid var(--ink)}
+.bab-no{margin:0 0 4pt; font-size:8pt; font-weight:700; letter-spacing:.6px; text-transform:uppercase; color:var(--biru)}
+.bab h1{margin:0; font-size:20pt; line-height:1.15; font-weight:800; letter-spacing:-.5px}
+.bab-sub{margin:4pt 0 0; color:var(--ink-3); font-size:9.5pt}
+h2{font-size:12pt; font-weight:750; letter-spacing:-.2px; margin:16pt 0 6pt; break-after:avoid}
+h3{font-size:10pt; font-weight:700; margin:12pt 0 5pt; break-after:avoid}
+.lead{font-size:10.6pt; line-height:1.65; color:var(--ink)}
+.prosa{color:var(--ink-2)}
+.ket{color:var(--ink-3); font-size:8.6pt}
+
+/* daftar isi */
+.toc-judul{font-size:24pt; font-weight:800; letter-spacing:-.6px; margin:6pt 0 16pt}
+.eyebrow{font-size:8pt; font-weight:700; letter-spacing:.6px; text-transform:uppercase; color:var(--biru); margin:0}
+.toc-daftar{list-style:none; margin:0 0 20pt; padding:0}
+.toc-daftar li{display:flex; align-items:baseline; gap:10px; padding:8pt 0; border-bottom:.6pt solid var(--line); font-size:11pt}
+.toc-no{width:24px; color:var(--biru); font-weight:700; font-size:9pt}
+.toc-nama{font-weight:600}
+.toc-titik{flex:1; border-bottom:1pt dotted var(--ink-4); transform:translateY(-3px)}
+.toc-hal{min-width:18px; text-align:right; font-weight:700; font-variant-numeric:tabular-nums}
+.tentang{background:var(--tint); border-radius:8px; padding:12pt 14pt; font-size:8.8pt; color:var(--ink-2)}
+.tentang h3{margin-top:0}
+
+/* angka kunci */
+.kpi{display:grid; grid-template-columns:repeat(3,1fr); gap:0; border:1pt solid var(--line); border-radius:8px; overflow:hidden; margin:12pt 0}
+.kpi div{padding:9pt 11pt; border-right:1pt solid var(--line); border-bottom:1pt solid var(--line)}
+.kpi div:nth-child(3n){border-right:0}
+.kpi div:nth-last-child(-n+3){border-bottom:0}
+.kpi small{display:block; font-size:7.6pt; color:var(--ink-3); margin-bottom:1pt}
+.kpi b{font-size:15pt; font-weight:750; letter-spacing:-.3px; font-variant-numeric:tabular-nums}
+.kpi em{display:block; font-style:normal; font-size:7.6pt; color:var(--ink-4)}
+
+/* batang komposisi platform */
+.komp{display:flex; height:9pt; border-radius:5pt; overflow:hidden; gap:2px; margin:8pt 0 5pt}
+.komp i{display:block}
+.komp-ket{display:flex; flex-wrap:wrap; gap:3pt 14pt; font-size:8.3pt; color:var(--ink-2)}
+.komp-ket span{display:inline-flex; align-items:center; gap:5px}
+.komp-ket i{width:7pt; height:7pt; border-radius:50%; display:inline-block}
+.komp-ket b{color:var(--ink)}
+
+/* kotak temuan */
+.temuan{background:var(--tint); border-left:3pt solid var(--biru); border-radius:0 8px 8px 0; padding:11pt 14pt; margin:12pt 0;
+  break-inside:avoid}
+.temuan h3{margin:0 0 6pt; font-size:10pt}
+.temuan ol{margin:0; padding-left:15pt}
+.temuan li{margin-bottom:5pt}
+.temuan li b{display:block}
+.waspada{background:#fbf5e8; border-left-color:var(--kuning)}
+
+/* gambar */
+figure{margin:10pt 0 14pt; break-inside:avoid}
+figure img{width:100%; height:auto; display:block; border-radius:7px; border:.6pt solid var(--line); background:#fff}
+figcaption{margin-top:5pt; font-size:8pt; color:var(--ink-3); line-height:1.45}
+figcaption b{color:var(--ink-2)}
+.fig2{display:grid; grid-template-columns:1fr 1fr; gap:9pt; align-items:start; break-inside:avoid; margin:10pt 0 14pt}
+.fig2 figure{margin:0}
+.fig-besar img{border-radius:9px}
+
+/* tabel */
+table.data{width:100%; border-collapse:collapse; font-size:8.6pt; margin:8pt 0 14pt; break-inside:auto}
+table.data caption{caption-side:top; text-align:left; font-size:8pt; color:var(--ink-3); padding-bottom:4pt}
+table.data th{text-align:left; font-weight:650; font-size:7.8pt; color:var(--ink-3); text-transform:uppercase; letter-spacing:.3px;
+  border-bottom:1pt solid var(--ink); padding:5pt 6pt}
+table.data td{border-bottom:.6pt solid var(--line); padding:5pt 6pt; vertical-align:top}
+table.data tr{break-inside:avoid}
+td.num,th.num{text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap}
+.batang-sel{display:flex; height:6pt; border-radius:3pt; overflow:hidden; gap:1px; min-width:90px}
+.batang-sel i{display:block}
+
+/* klaster */
+.klaster{border:1pt solid var(--line); border-radius:9px; padding:10pt 12pt; margin:0 0 9pt; break-inside:avoid}
+.kl-kepala{display:flex; gap:9pt; align-items:flex-start}
+.kl-no{flex:none; width:24pt; height:24pt; border-radius:7px; display:grid; place-items:center; font-size:8.5pt; font-weight:800; color:#fff}
+.kl-kepala h3{margin:0; font-size:10.2pt; line-height:1.3}
+.kl-meta{font-size:7.8pt; color:var(--ink-3); margin-top:2pt}
+.kl-sent{display:flex; height:5pt; border-radius:3pt; overflow:hidden; gap:1px; margin:7pt 0 3pt}
+.kl-sent i{display:block}
+.kl-sent-ket{font-size:7.6pt; color:var(--ink-3); margin-bottom:5pt}
+.klaster ul{margin:4pt 0 0; padding-left:14pt; color:var(--ink-2); font-size:8.7pt}
+.klaster li{margin-bottom:3pt}
+.wawasan{display:grid; grid-template-columns:1fr 1fr; gap:8pt; margin:8pt 0 14pt}
+.wawasan div{background:var(--tint); border-radius:7px; padding:8pt 10pt; font-size:8.5pt; break-inside:avoid}
+.wawasan b{display:block; font-size:8.8pt; margin-bottom:2pt}
+
+/* kesimpulan */
+.simpul{counter-reset:s; list-style:none; padding:0; margin:8pt 0 14pt}
+.simpul li{counter-increment:s; position:relative; padding:9pt 0 9pt 30pt; border-bottom:.6pt solid var(--line); break-inside:avoid}
+.simpul li::before{content:counter(s, decimal-leading-zero); position:absolute; left:0; top:9pt; font-weight:800; color:var(--biru); font-size:10pt}
+.simpul li b{display:block; font-size:10pt; margin-bottom:2pt}
+.rekom{list-style:none; padding:0; margin:8pt 0 14pt}
+.rekom li{position:relative; padding:6pt 0 6pt 18pt; border-bottom:.6pt solid var(--line); break-inside:avoid}
+.rekom li::before{content:"→"; position:absolute; left:0; top:6pt; color:var(--biru); font-weight:700}
+
+.glosarium{display:grid; grid-template-columns:1fr 1fr; gap:6pt 14pt; font-size:8.5pt}
+.glosarium div{break-inside:avoid}
+.glosarium b{display:block}
+.halaman-baru{break-before:page; margin-top:0}
+
+/* bagian penyebar sentimen dan indikator amplifikasi */
+table.data.akun{font-size:8pt}
+table.data.akun td{padding:4pt 5pt}
+table.data td.kecil{font-size:7.4pt; color:var(--ink-2); line-height:1.35}
+table.data tr.sub td{border-bottom:.6pt solid var(--line); padding-top:0; font-size:7.6pt; color:var(--ink-2); line-height:1.4}
+table.data tr:has(+ tr.sub) td{border-bottom:0}
+table.data .ket{font-size:7.2pt}
+.daftar-konten{display:grid; grid-template-columns:1fr 1fr; gap:8pt; margin:8pt 0 14pt}
+.konten{border:.6pt solid var(--line); border-left:3pt solid var(--ink-3); border-radius:3pt; padding:7pt 9pt; break-inside:avoid}
+.konten p{margin:0 0 5pt; font-size:8.2pt; line-height:1.45}
+.konten footer{font-size:7.2pt; color:var(--ink-3)}
+
+/* angka kunci berwarna, label kecil di atas batang komposisi */
+.kpi b.neg{color:#c94f4f}
+.kpi b.pos{color:#2f74c9}
+.label-kecil{margin:14pt 0 0; font-size:7.8pt; font-weight:650; color:var(--ink-3); text-transform:uppercase; letter-spacing:.4px}
+
+/* definisi di latar belakang */
+.definisi{display:grid; grid-template-columns:30mm 1fr; gap:5pt 12pt; margin:6pt 0 14pt; font-size:9.2pt}
+.definisi dt{font-weight:700; color:var(--ink)}
+.definisi dd{margin:0; color:var(--ink-2)}
+.glosarium{background:var(--tint); border-radius:8px; padding:10pt 12pt}
+.glosarium b{margin-bottom:1pt}
+
+/* contoh unggahan di bawah baris akun */
+table.data tr.sub td{font-style:normal}
+table.data .isu{display:inline-block; font-size:7pt; font-weight:650; color:var(--ink-2); background:var(--tint-2);
+  border-radius:9px; padding:0 6px; margin-right:6px}
+
+/* klaster: tabel ringkas (laporan per periode) dan isu klaster tanpa catatan */
+.kl-titik{display:inline-block; width:7pt; height:7pt; border-radius:2px; margin-right:5px; vertical-align:-1px}
+.kl-isu{margin:4pt 0 0; font-size:8.6pt; color:var(--ink-2)}
+
+/* catatan penutup */
+.catatan{margin:6pt 0 0; padding-left:14pt; color:var(--ink-2); font-size:8.8pt}
+.catatan li{margin-bottom:3pt}
+
+/* blok yang tidak boleh terpotong halaman, gambar di samping teks, judul glosarium */
+.blok{break-inside:avoid}
+.samping{display:grid; grid-template-columns:1.25fr 1fr; gap:14pt; align-items:center; break-inside:avoid; margin:10pt 0 14pt}
+.samping figure{margin:0}
+.glosarium{break-inside:avoid; margin:10pt 0 14pt}
+.glos-judul{grid-column:1 / -1; margin:0 0 2pt; font-size:8pt; font-weight:700; color:var(--ink-3); text-transform:uppercase; letter-spacing:.4px}

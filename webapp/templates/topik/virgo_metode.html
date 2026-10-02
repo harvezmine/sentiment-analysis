@@ -1,0 +1,148 @@
+<div class="catatan">
+  <b>Ringkas:</b> volume, linimasa, aktor, media, narasi, dan struktur jaringan sudah dapat
+  dipakai. <b>Sentimen &amp; emosi media sosial berbasis aturan</b>: cukup untuk membaca
+  pola dan membandingkan klaster, tetapi belum divalidasi terhadap sampel berlabel manual.
+  Sentimen berita masih baseline lexicon dan belum layak dikutip.
+</div>
+
+<h2>Peristiwa</h2>
+<p>KM/KMP Virgo Transport 8, eks <i>Ferry Kurushima</i> buatan Jepang 1987, dioperasikan
+PT Virgo Karya Shipping di rute Surabaya–Banjarmasin sejak Juli 2026. Berangkat
+12 September 2026 pukul 10.33 membawa 243 orang dan 89 kendaraan. Miring drastis
+dan hilang kontak 13 September sekitar pukul 02.00 WITA di Laut Jawa.</p>
+
+<h2>Pengumpulan data</h2>
+<p><b>Berita.</b> URL dipanen dari Google News RSS lewat 245 kueri: 25 varian kata kunci,
+jendela harian 11–30 September, dan kueri <code>site:</code> untuk 59 media. Ditambah
+mesin pencari internal 20 media untuk menjaring yang tidak terindeks Google News.
+Total 10.221 item mentah, disaring relevansi dan tanggal menjadi 6.246 URL unik,
+lalu di-scrape isinya. Ekstraksi berlapis: JSON-LD <code>NewsArticle</code>, selector
+khas media Indonesia, lalu heuristik paragraf.</p>
+
+<p><b>X (Twitter).</b> Melalui API GraphQL internal X dengan sesi login pemilik akun.
+Header <code>x-client-transaction-id</code> dihitung ulang tiap permintaan; queryId
+ditambang langsung dari bundle JavaScript X sehingga tidak basi saat X merilis versi
+baru. Kueri mencakup kata kunci, tagar, dan jendela harian 12–30 September.</p>
+
+<p><b>YouTube.</b> Lewat InnerTube (API internal YouTube, tanpa kunci/kuota): 40 kueri
+× dua urutan, lalu komentar dan balasannya. Video insiden kapal lain disaring filter
+relevansi berbasis pengecualian.</p>
+
+<p><b>Instagram dan Threads.</b> Lewat API web dengan sesi login dan klien yang meniru Chrome
+(curl_cffi). Post diambil dari tagar dan pencarian kata kunci; komentar/balasan hanya dari post
+dengan percakapan terbanyak (sekitar 75 komentar teratas per post di Instagram, ±15 balasan teratas per
+post di Threads). Ritme sengaja lambat: jeda 12–25 detik, istirahat tiap 20 permintaan, maksimal
+120–180 permintaan per sesi, dan berhenti total pada tanda verifikasi atau rate-limit. Sesi Instagram
+pertama sempat terputus; sesi kedua mengumpulkan 1.218 komentar dari 21 post teratas.</p>
+
+<h2>Pembersihan</h2>
+<ul>
+<li>Deduplikasi berita: URL kanonik, lalu judul-ternormalisasi per domain dan global.</li>
+<li>Filter relevansi berbasis isi, bukan hanya judul.</li>
+<li>Artikel dengan tanggal di luar 12–30 September 2026 dikeluarkan dari seluruh
+    grafik; sekitar 35 artikel punya meta tanggal rusak (terbaca 1790, 1970).</li>
+</ul>
+
+<h2>Tipe penulis</h2>
+<p>Akun X dipisah menjadi Media, Institusi/Pemerintah, Jurnalis, dan Publik memakai tiga
+sinyal berlapis: pola handle, penanda redaksi di bio, dan perilaku (volume posting tinggi
+disertai rasio tautan sangat tinggi). Pemisahan ini wajib: hampir separuh cuitan berasal
+dari akun media yang menulis laporan datar, dan mencampurnya dengan suara publik akan
+mengaburkan gambaran opini.</p>
+
+<h2>Sentimen &amp; emosi media sosial</h2>
+<p>X, YouTube, dan Instagram dilabeli dengan <b>aturan yang sama</b>
+(<code>scripts/label_teks.py</code>) agar perbandingan antar-platform sah. Kata musibah
+faktual ("tewas", "hilang") tidak dihitung negatif; yang menentukan adalah penanda
+evaluatif: menyalahkan, menuntut, sinis, memuji, mendoakan.</p>
+<p><b>Emosi</b> memakai 8 emosi dasar Plutchik, sama dengan kategori laporan Drone Emprit:
+sedih (<i>sadness</i>), antisipasi, marah, muak (<i>disgust</i>), percaya (<i>trust</i>),
+senang (<i>joy</i>), takut, terkejut. Leksikonnya disesuaikan dengan konteks musibah
+kapal: "semoga cepat ditemukan" = antisipasi, "kapal tua / overload" = muak terhadap
+kelalaian, "salut tim SAR" = percaya.</p>
+<p><b>Koreksi 29 September.</b> Leksikon lama dikompilasi dengan <code>re.X</code>, yang
+diam-diam membuang spasi sehingga semua frasa multi-kata ("terima kasih", "usut tuntas",
+"tim sar", "pemilik kapal") tidak pernah cocok, dan kata "biasa" ikut menangkap "luar
+biasa" sebagai sinis. Keduanya sudah diperbaiki, sasaran kritik diperluas (nakhoda,
+pemilik, pengawas, BKI), dan seluruh data dilabeli ulang, sehingga angka X berubah dari versi
+sebelumnya.</p>
+
+<p><b>Relevansi X.</b> Kueri umum (<code>#KapalTenggelam</code>, "kapal tenggelam Laut Jawa")
+ternyata menjaring ±20% tweet tentang insiden lain: KMP Tunu Pratama Jaya di Selat Bali,
+kapal wartawan di Anak Krakatau, kapal wisata di luar negeri, bahkan konser. Tweet kini
+ditandai <code>relevan</code>: dari kueri spesifik Virgo dipercaya kecuali teksnya jelas insiden
+lain; dari kueri rute (Surabaya–Banjarmasin, Laut Jawa) relevan bila membahas korban/SAR;
+selebihnya wajib lolos filter teks. Yang tidak relevan tidak dihapus, hanya dikeluarkan dari
+grafik.</p>
+<p><b>Negasi.</b> "tidak takut", "jangan sedih" tidak dihitung sebagai emosi takut/sedih;
+frasa yang justru bermakna ("tidak terima", "tidak berani", "tidak menyangka") dipertahankan.</p>
+<p><b>Keterbatasan yang terlihat di contoh nyata:</b> sarkasme halus, pertanyaan retoris tanpa
+kata kritik, pujian tersirat ("orang kecil berhati mulia"), dan komentar berbahasa Inggris
+masih sering jatuh ke <i>netral</i>. Panel "Contoh nyata per sentimen" di Ringkasan sengaja
+menampilkan penanda tiap label agar kesalahan semacam ini bisa diperiksa.</p>
+
+<h2>Peta jaringan (SNA)</h2>
+<ul>
+<li><b>Simpul</b> = akun. <b>Sisi</b> = interaksi: komentar (komentator → kanal/pemilik post),
+    balasan (pembalas → komentator induk), dan mention.</li>
+<li>Setiap sisi membawa sentimen dan emosi <i>unggahan yang membentuknya</i>, dasar
+    tampilan "SNA by sentiment" dan "SNA by emotion".</li>
+<li>Graf sosial dipisah dari graf <b>media ↔ aktor</b> (ko-mention berita). Versi awal
+    mencampurnya, dan 93% sisinya berasal dari berita sehingga peta tidak mencerminkan
+    percakapan publik.</li>
+<li>Maksimal 3.000 simpul (sama dengan batas tampilan Drone Emprit): hub dan penghubung
+    diprioritaskan, lalu komentator milik hub terbesar.</li>
+<li>Komunitas: Louvain. Tata letak: ForceAtlas2 mode LinLog (algoritma Gephi).</li>
+<li>Nama dan butir klaster yang bertanda <i>dikurasi</i> ditulis setelah membaca
+    video dan komentar paling disukai di klaster itu (<code>data/sna_narasi.json</code>),
+    ditautkan ke akun hub-nya. Klaster baru yang muncul saat data bertambah memakai
+    <i>ringkasan otomatis</i> sampai dikurasi.</li>
+</ul>
+
+<h2>Batasan yang harus diketahui</h2>
+
+<h3>1. Sentimen belum tervalidasi</h3>
+<p>Dua pendekatan otomatis sudah dicoba dan keduanya gagal pada korpus ini:</p>
+<ul>
+<li><b>Lexicon InSet pada berita</b> → 4.480 negatif dari 4.760 artikel. Artefak, bukan
+    temuan: berita musibah penuh kata "tewas", "hilang", "tenggelam" yang dibaca negatif
+    padahal netral-faktual.</li>
+<li><b>Aturan berbobot pada X</b> → salah arah sebaliknya. "Penyelam Basarnas temukan
+    korban di dalam kapal" terlabeli <i>positif/apresiasi</i>; "KMP Virgo mengalami
+    kecelakaan di Laut Jawa" terlabeli <i>negatif</i>. Keduanya laporan datar.</li>
+</ul>
+<p>Akar masalahnya sama: aturan tidak bisa membedakan penyebutan peristiwa dari penilaian
+terhadap peristiwa. Rencana perbaikan: akun media dilabeli <code>pemberitaan</code> dan
+dikeluarkan dari hitungan opini, sisanya dilabeli LLM dengan rubrik eksplisit, lalu
+300 sampel diperiksa ulang untuk mengukur konsistensi.</p>
+
+<h3>2. Narasi lebih dapat dipercaya daripada sentimen</h3>
+<p>Kolom narasi adalah deteksi topik lewat kata kunci domain, bukan penilaian nada,
+sehingga jauh lebih tahan terhadap masalah di atas.</p>
+
+<h3>3. Jangkauan X</h3>
+<p>Pencarian X hanya menjangkau beberapa minggu ke belakang. Cuitan yang sudah dihapus
+atau dari akun yang dikunci tidak terjaring. Angka <i>views</i> hanya tersedia untuk
+sebagian cuitan.</p>
+
+<h3>4. Tanggal komentar YouTube adalah perkiraan</h3>
+<p>YouTube hanya memberi jarak waktu relatif ("2 minggu yang lalu"). Semua komentar
+bertanda "2 minggu" jatuh ke satu tanggal yang sama, sehingga lonjakan YouTube pada
+15 September di grafik linimasa sebagian besar adalah <b>artefak pembulatan</b>,
+bukan lonjakan nyata.</p>
+
+<h3>5. Porsi platform di SNA</h3>
+<p>YouTube menyumbang interaksi terbanyak karena kolom komentar kanal berita sangat ramai. Agar platform
+lain tidak tenggelam saat graf dipangkas ke 3.000 simpul, tiap platform dijamin minimal 250 simpul, dan
+ringkasan klaster selalu memuat klaster terbesar dari platform yang belum terwakili di 8 besar.</p>
+
+<h3>6. Engagement tidak sebanding antar platform</h3>
+<p>Berita tidak punya metrik engagement di dataset ini, jadi nilainya 0; bukan berarti
+tidak dibaca. Perbandingan engagement hanya sah di dalam satu platform.</p>
+
+<h2>Tahap berikutnya</h2>
+<ol>
+<li>Komentar Instagram di post yang lebih kecil (sesi lanjutan, dijeda beberapa jam).</li>
+<li>Balasan dan retweeter X untuk cuitan teratas, agar X terwakili di SNA.</li>
+<li>Validasi label: sampel acak diperiksa manual/LLM untuk mengukur akurasi aturan.</li>
+</ol>

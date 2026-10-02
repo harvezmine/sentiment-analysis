@@ -1,0 +1,182 @@
+{% extends "base.html" %}
+{% set KET = T.KET_PLATFORM %}
+
+{% block isi %}
+<section class="kepala">
+  <div>
+    <p class="kepala-atas">{{ T.NAMA }} · platform</p>
+    <h1><i class="titik" data-platform="{{ platform }}" style="width:12px;height:12px;vertical-align:4px;margin-right:10px"></i>{{ platform }}</h1>
+    <p class="kepala-lede">{{ KET.get(platform, '') }}</p>
+  </div>
+  <dl class="statistik" id="kpi" style="grid-template-columns:repeat(4,minmax(0,1fr))"></dl>
+</section>
+
+<h2 class="bagian">Tren volume<span>Jumlah konten di platform ini per waktu</span></h2>
+<div class="kisi">
+  <div class="panel s8">
+    <h2>Volume {{ per }}</h2>
+    <p class="ket">Jumlah konten yang terbit per hari</p>
+    <div class="kanvas"><canvas id="g-linimasa"></canvas></div>
+  </div>
+  <div class="panel s4">
+    <h2>Ritme jam unggah</h2>
+    <p class="ket">Total konten per jam WIB</p>
+    <div class="kanvas"><canvas id="g-jam"></canvas></div>
+  </div>
+  <div class="panel s12">
+    <h2>Peta panas {{ "pekan" if pekanan else "tanggal" }} dan jam</h2>
+    <p class="ket">Makin terang makin ramai</p>
+    <div id="heatmap"><p class="memuat kerangka">Memuat</p></div>
+  </div>
+</div>
+
+<h2 class="bagian">Sentimen &amp; emosi<span class="waspada">Berbasis aturan, belum divalidasi terhadap sampel berlabel manual</span></h2>
+<div class="kisi">
+  <div class="panel s4">
+    <h2>Komposisi</h2>
+    <p class="ket">Porsi konten per label sentimen</p>
+    <div class="kanvas pendek"><div class="sen-ringkas" id="sen-ringkas"></div></div>
+  </div>
+  <div class="panel s8">
+    <h2>Sentimen {{ per }}</h2>
+    <p class="ket">Jumlah konten per label, bertumpuk per tanggal</p>
+    <div class="kanvas pendek"><canvas id="g-sentimen-harian"></canvas></div>
+  </div>
+  <div class="panel s12">
+    <h2>Emosi (Plutchik)</h2>
+    <p class="ket">Delapan emosi dasar, di luar konten tanpa muatan emosi</p>
+    <div class="kanvas pendek"><canvas id="g-emosi"></canvas></div>
+  </div>
+  <div class="panel s12">
+    <h2>Contoh nyata per sentimen</h2>
+    <p class="ket">Konten dengan engagement tertinggi di tiap label, lengkap dengan penanda yang membuatnya dilabeli begitu.
+       Aturan lengkapnya ada di halaman Ringkasan dan Metode.</p>
+    <div class="cs" id="contoh-sentimen"><p class="memuat kerangka">Memuat</p></div>
+  </div>
+</div>
+
+<h2 class="bagian">Narasi &amp; aktor<span>Isu dan pihak yang paling sering muncul</span></h2>
+<div class="kisi">
+  <div class="panel s7">
+    <h2>Isu dominan</h2>
+    <p class="ket">Satu konten bisa menyentuh lebih dari satu isu</p>
+    <div class="kanvas tinggi"><canvas id="g-narasi"></canvas></div>
+  </div>
+  <div class="panel s5">
+    <h2>Aktor disebut</h2>
+    <p class="ket">Lembaga, pihak, atau akun yang disebut di dalam konten</p>
+    <div class="kanvas tinggi"><canvas id="g-aktor"></canvas></div>
+  </div>
+  <div class="panel s12">
+    <h2>Pergeseran narasi harian</h2>
+    <p class="ket">Delapan isu terbesar, bertumpuk</p>
+    <div class="kanvas tinggi"><canvas id="g-narasi-harian"></canvas></div>
+  </div>
+</div>
+
+<h2 class="bagian">Penulis<span>Siapa yang paling banyak bicara dan paling didengar</span></h2>
+<div class="kisi">
+  <div class="panel s4">
+    <h2>Tipe penulis</h2>
+    <p class="ket">Jumlah konten per tipe</p>
+    <div class="kanvas"><canvas id="g-tipe"></canvas></div>
+  </div>
+  <div class="panel s4">
+    <h2>Paling produktif</h2>
+    <p class="ket">Berdasarkan jumlah konten</p>
+    <div class="kanvas"><canvas id="g-penulis-volume"></canvas></div>
+  </div>
+  <div class="panel s4">
+    <h2>Engagement tertinggi</h2>
+    <p class="ket">Suka, komentar, repost, kutipan</p>
+    <div class="kanvas"><canvas id="g-penulis-eng"></canvas></div>
+  </div>
+</div>
+
+<h2 class="bagian">Konten teratas<span>25 konten dengan engagement tertinggi</span></h2>
+<div class="kisi">
+  <div class="panel s12">
+    <div id="tabel-teratas"><p class="memuat kerangka">Memuat</p></div>
+  </div>
+</div>
+
+<h2 class="bagian">Bahasa<span>Kata dan tagar yang paling sering muncul</span></h2>
+<div class="kisi">
+  <div class="panel s7">
+    <h2>Kata paling sering</h2>
+    <p class="ket">Stopword bahasa Indonesia sudah disaring</p>
+    <div class="awan" id="awan-kata"></div>
+  </div>
+  <div class="panel s5">
+    <h2>Tagar</h2>
+    <p class="ket">Diambil dari teks konten</p>
+    <div class="awan" id="awan-tagar"></div>
+  </div>
+</div>
+{% endblock %}
+
+{% block skrip %}
+<script>
+paksaPlatform({{ platform|tojson }});
+
+async function muat() {
+  const r = await ambil('/api/ringkasan');
+  isiOpsiTipe(r.opsi_tipe || []);
+  tandaiKosong(r);
+  const hari = (r.rentang || '').split(' s/d ');
+  document.getElementById('kpi').innerHTML = [
+    ['Konten', angka(r.total), hari.length === 2 ? `${tglPendek(hari[0])} – ${tglPendek(hari[1])} 2026` : ''],
+    ['Penulis unik', angka(r.penulis), 'akun atau media'],
+    ['Engagement', ringkasAngka(r.engagement), 'suka, komentar, repost'],
+    ['Tayangan', r.jangkauan ? ringkasAngka(r.jangkauan) : 'Tidak ada', r.jangkauan ? 'views tercatat' : 'platform ini tidak memberi angka tayangan'],
+  ].map(([l, v, s]) => `<div class="stat"><dt>${l}</dt><dd>${v}</dd><small>${aman(s)}</small></div>`).join('');
+
+  grafikLinimasa(await ambil('/api/linimasa'));
+  const jm = await ambil('/api/jam');
+  gambarHeatmap('heatmap', jm);
+  grafikBatang('g-jam', [...Array(24).keys()].map(h => String(h).padStart(2, '0')), jm.per_jam,
+               WARNA_PLATFORM[{{ platform|tojson }}]);
+
+  const s = await ambil('/api/sentimen');
+  isiSentimenRingkas(s);
+  grafikSentimenHarian(s.harian);
+  grafikEmosi(await ambil('/api/emosi'));
+  isiContohSentimen(await ambil('/api/contoh-sentimen'));
+
+  const n = await ambil('/api/narasi');
+  n.label.forEach(warnaNarasi);
+  grafikBatangH('g-narasi', n.label, n.data);
+  const ak = await ambil('/api/aktor');
+  grafikBatangH('g-aktor', ak.label, ak.data);
+  grafikNarasiHarian(await ambil('/api/narasi-harian'));
+
+  const p = await ambil('/api/penulis');
+  grafikBatangH('g-tipe', p.tipe.label, p.tipe.data);
+  grafikBatangH('g-penulis-volume', p.volume.map(x => x.nama).slice(0, 12), p.volume.map(x => x.nilai).slice(0, 12));
+  grafikBatangH('g-penulis-eng', p.engagement.map(x => x.nama).slice(0, 12), p.engagement.map(x => x.nilai).slice(0, 12));
+
+  const k = await ambil('/api/konten', { urut: 'engagement', hal: 1 });
+  const baris = k.baris.slice(0, 25).map(b => `
+    <tr>
+      <td style="white-space:nowrap">${tglPendek(b.tanggal)}</td>
+      <td><b>${aman(b.penulis)}</b><div style="color:var(--ink-3);font-size:12px">${aman(b.tipe_penulis)}</div></td>
+      <td style="max-width:640px;color:var(--ink-2)">${b.judul ? `<b style="color:var(--ink)">${aman(b.judul)}</b><br>` : ''}${aman((b.teks || '').slice(0, 240))}
+          ${b.url ? ` <a href="${aman(b.url)}" target="_blank" rel="noopener">buka</a>` : ''}</td>
+      <td><span class="lencana ${kelasSentimen(b.sentimen)}">${b.sentimen}</span></td>
+      <td style="color:var(--ink-3)">${aman(b.narasi || '-')}</td>
+      <td class="num">${angka(b.engagement)}</td>
+    </tr>`).join('');
+  document.getElementById('tabel-teratas').innerHTML = k.baris.length
+    ? `<table><thead><tr><th>Tanggal</th><th>Penulis</th><th>Konten</th>
+       <th>Sentimen</th><th>Narasi</th><th class="num">Engagement</th>
+       </tr></thead><tbody>${baris}</tbody></table>`
+    : '<p class="memuat">Belum ada data untuk platform ini.</p>';
+
+  const kt = await ambil('/api/kata');
+  isiAwan('awan-kata', kt.kata);
+  isiAwan('awan-tagar', kt.tagar);
+}
+pasangFilter(muat);
+muat();
+</script>
+{% endblock %}

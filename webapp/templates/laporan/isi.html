@@ -1,0 +1,379 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<title>Laporan · {{ F.T.NAMA }}</title>
+<style>{{ css }}</style>
+</head>
+<body>
+{% set WP = {'Berita': '#3987e5', 'X (Twitter)': '#d95926', 'YouTube': '#199e70', 'Instagram': '#c98500', 'Threads': '#d55181'} %}
+{% set WK = ['#3987e5', '#d95926', '#199e70', '#c98500', '#d55181', '#008300', '#9085e9', '#e66767', '#5a5954', '#5a5954'] %}
+{% set CARA = {
+  'Berita': 'Artikel media daring dari Google News dan mesin pencari, ditambah media lokal di wilayah peristiwa.',
+  'X (Twitter)': 'Tweet yang memuat kata kunci atau tagar topik, beserta balasannya.',
+  'YouTube': 'Video yang membahas topik ini, beserta komentar dan balasannya.',
+  'Instagram': 'Unggahan dengan kata kunci atau tagar topik, beserta komentar yang berhasil dikumpulkan.',
+  'Threads': 'Unggahan dan balasan dari pencarian kata kunci.'} %}
+{% set ns = namespace(gb=0, tb=0) %}
+{% macro np(p) %}{{ 'X' if p == 'X (Twitter)' else p }}{% endmacro %}
+{% macro bab(id) %}{% for b in bagian if b.id == id %}<header class="bab"><p class="bab-no">Bagian {{ b.no }}</p><h1>{{ b.judul }}</h1>{% if caller %}<p class="bab-sub">{{ caller() }}</p>{% endif %}</header>{% endfor %}{% endmacro %}
+{% macro gambar(kunci, judul, ket='', kelas='') %}{% if g[kunci] %}{% set ns.gb = ns.gb + 1 %}{% set im = g[kunci] %}<figure class="{{ kelas }}"><img src="{{ im.src }}" width="{{ im.w }}" height="{{ im.h }}" alt="{{ judul }}"><figcaption><b>Gambar {{ ns.gb }}. {{ judul }}.</b> {{ ket }}</figcaption></figure>{% endif %}{% endmacro %}
+{% macro tabel(judul) %}{% set ns.tb = ns.tb + 1 %}<caption><b>Tabel {{ ns.tb }}.</b> {{ judul }}</caption>{% endmacro %}
+{% macro daftar_akun(xs) %}{% for x in xs %}{{ x.nama }} ({{ x.n }}){{ ', ' if not loop.last }}{% else %}–{% endfor %}{% endmacro %}
+
+{# ---------- bagian penyebar satu sentimen: dipakai untuk negatif dan positif ---------- #}
+{% macro penyebar(P, sen, warna) %}
+  {% call bab(sen) %}Konten dan akun yang paling banyak membawa nada {{ sen }} di media sosial{% endcall %}
+  <p class="lead">{{ F.teks.neg if sen == 'negatif' else F.teks.pos }}</p>
+  {{ gambar('sna_' ~ sen, 'Graf SNA interaksi bernada ' ~ sen,
+     'Hanya interaksi bernada ' ~ sen ~ ' yang ditampilkan, beserta akun yang terhubung olehnya. Ukuran node sebanding dengan jumlah interaksi yang diterima. Warna node menunjukkan nada yang paling sering dipakai akun itu secara keseluruhan.', 'fig-besar') }}
+  <div class="fig2">
+    <table class="data">
+      {{ tabel('Konten ' ~ sen ~ ' per platform') }}
+      <thead><tr><th>Platform</th><th class="num">Konten</th><th class="num">Porsi</th></tr></thead>
+      <tbody>{% for x in P.platform %}<tr><td>{{ np(x.nama) }}</td><td class="num">{{ x.n|ang }}</td><td class="num">{{ x.pct|pct }}</td></tr>{% endfor %}</tbody>
+    </table>
+    <table class="data">
+      {{ tabel('Isu yang paling sering muncul di konten ' ~ sen) }}
+      <thead><tr><th>Isu</th><th class="num">Konten</th></tr></thead>
+      <tbody>{% for x in P.narasi %}<tr><td>{{ x.nama }}</td><td class="num">{{ x.n|ang }}</td></tr>{% else %}<tr><td colspan="2">Tidak ada isu yang terdeteksi.</td></tr>{% endfor %}</tbody>
+    </table>
+  </div>
+
+  <h2>Akun penyebar teratas</h2>
+  <p class="prosa">Tabel ini memuat akun dengan konten {{ sen }} terbanyak. <b>Porsi</b> adalah bagian konten {{ sen }}
+    dari semua unggahan akun itu tentang topik ini. Dua kolom terakhir diambil dari graf SNA: akun yang paling sering ia
+    komentari, balas, atau sebut dengan nada {{ sen }}, dan akun yang paling sering melakukan hal yang sama kepadanya.
+    Angka dalam kurung adalah jumlah interaksi.</p>
+  <table class="data akun">
+    {{ tabel('Akun penyebar konten ' ~ sen) }}
+    <thead><tr><th>Akun</th><th class="num">Konten</th><th class="num">Porsi</th><th class="num">Engagement</th><th>Akun yang ia tanggapi</th><th>Akun yang menanggapinya</th></tr></thead>
+    <tbody>
+    {% for a in P.akun %}<tr>
+      <td><b>{{ a.nama }}</b><br><span class="ket">{{ np(a.platform) }} · {{ a.tipe }}{% if a.klaster is not none and a.klaster < 10 %} · klaster K{{ a.klaster + 1 }}{% endif %}</span></td>
+      <td class="num">{{ a.n|ang }}</td><td class="num">{{ a.porsi|pct(0) }}</td><td class="num">{{ a.eng|ang }}</td>
+      <td class="kecil">{{ daftar_akun(a.sasaran) }}</td><td class="kecil">{{ daftar_akun(a.dari) }}</td></tr>
+      {% if a.contoh %}<tr class="sub"><td colspan="6">{% if a.narasi %}<span class="isu">{{ a.narasi }}</span>{% endif %}“{{ a.contoh }}”</td></tr>{% endif %}
+    {% endfor %}
+    </tbody>
+  </table>
+
+  {% if P.ego %}
+  <div class="blok">
+  <h2>Ego-network akun penyebar</h2>
+  <p class="prosa">Setiap gambar memusatkan graf SNA {{ sen }} pada satu akun (node berbingkai putih) dan meredupkan
+    interaksi lain, sehingga yang tampak jelas hanya akun yang terhubung langsung dengannya. Graf memuat paling banyak
+    3.000 akun dengan interaksi terbanyak, jadi sebagian akun di tabel bisa tidak tampak di gambar.</p>
+  <div class="fig2">
+  {% for a in P.ego %}
+    {{ gambar('ego_' ~ sen ~ '_' ~ loop.index0, 'Ego-network ' ~ a.nama ~ ' (' ~ np(a.platform) ~ ')',
+       a.n ~ ' konten ' ~ sen ~ '. Akun yang ia tanggapi: ' ~ daftar_akun(a.sasaran) ~ '. Akun yang menanggapinya: ' ~ daftar_akun(a.dari) ~ '.') }}
+  {% endfor %}
+  </div>
+  </div>
+  {% endif %}
+
+  {% if P.sasaran %}
+  <table class="data">
+    {{ tabel('Akun yang paling banyak menerima interaksi bernada ' ~ sen) }}
+    <thead><tr><th>Akun</th><th>Platform</th><th class="num">Interaksi {{ sen }}</th><th class="num">Porsi dari semua interaksi masuk</th></tr></thead>
+    <tbody>{% for x in P.sasaran %}<tr><td>{{ x.nama }}</td><td>{{ x.platform }}</td><td class="num">{{ x.n|ang }}</td><td class="num">{{ x.porsi|pct(0) }}</td></tr>{% endfor %}</tbody>
+  </table>
+  {% endif %}
+
+  <h2>Konten {{ sen }} dengan engagement tertinggi</h2>
+  <div class="daftar-konten">
+  {% for k in P.konten %}
+    <div class="konten" style="border-left-color:{{ warna }}">
+      <p>{{ k.teks }}</p>
+      <footer><b>{{ k.penulis }}</b> · {{ np(k.platform) }} · {{ k.tanggal|tgl }} · {{ k.eng|ang }} engagement</footer>
+    </div>
+  {% endfor %}
+  </div>
+{% endmacro %}
+
+<!-- ============================== RINGKASAN -->
+<section class="bagian" id="ringkasan">
+  {% call bab('ringkasan') %}{{ F.judul }} · {{ F.periode }}{% endcall %}
+  <p class="lead">{{ F.teks.ringkasan }}</p>
+  <div class="kpi">
+    <div><small>Total konten</small><b>{{ F.total|ang }}</b><em>berita dan media sosial</em></div>
+    <div><small>Akun dan media</small><b>{{ F.penulis|ang }}</b><em>penulis berbeda</em></div>
+    <div><small>Engagement</small><b>{{ F.engagement|ang }}</b><em>suka, komentar, repost</em></div>
+    <div><small>Tayangan</small><b>{{ F.jangkauan|ang }}</b><em>video dan unggahan</em></div>
+    <div><small>Sentimen negatif</small><b class="neg">{{ F.sentimen.negatif|pct if F.sentimen else '–' }}</b><em>dari {{ F.n_sosial|ang }} konten media sosial</em></div>
+    <div><small>Sentimen positif</small><b class="pos">{{ F.sentimen.positif|pct if F.sentimen else '–' }}</b><em>dari {{ F.n_sosial|ang }} konten media sosial</em></div>
+  </div>
+  <p class="label-kecil">Sebaran konten per sumber</p>
+  <div class="komp">{% for p in F.platform %}<i style="flex:{{ p.n }};background:{{ WP[p.nama] }}"></i>{% endfor %}</div>
+  <div class="komp-ket">{% for p in F.platform %}<span><i style="background:{{ WP[p.nama] }}"></i>{{ np(p.nama) }} <b>{{ p.n|ang }}</b> {{ p.pct|pct(0) }}</span>{% endfor %}</div>
+  <div class="temuan">
+    <h3>Temuan utama</h3>
+    <ol>{% for k in F.kesimpulan[:4] %}<li><b>{{ k.judul }}</b>{{ k.ringkas or k.isi }}</li>{% endfor %}</ol>
+  </div>
+</section>
+
+<!-- ============================== LATAR -->
+<section class="bagian" id="latar">
+  {% call bab('latar') %}Konteks, sumber data, dan cara membaca laporan{% endcall %}
+  <h2>Konteks</h2>
+  <p class="lead">{{ F.lede }}</p>
+  <h2>Sumber data</h2>
+  <table class="data">
+    {{ tabel('Jumlah konten per sumber, ' ~ F.periode) }}
+    <thead><tr><th>Sumber</th><th class="num">Konten</th><th class="num">Porsi</th><th>Yang dikumpulkan</th></tr></thead>
+    <tbody>
+    {% for p in F.platform %}<tr><td><b>{{ np(p.nama) }}</b></td><td class="num">{{ p.n|ang }}</td><td class="num">{{ p.pct|pct }}</td><td>{{ CARA.get(p.nama, '') }}</td></tr>{% endfor %}
+    </tbody>
+  </table>
+  <h2>Cara membaca angka</h2>
+  <dl class="definisi">
+    <dt>Cakupan</dt><dd>Laporan ini hanya menghitung konten yang membahas {{ F.T.NAMA }} dan terbit pada {{ F.periode }}.</dd>
+    <dt>Sentimen</dt><dd>{% if F.label_ai %}Diberikan untuk konten media sosial oleh model bahasa dengan rubrik tetap:
+      kritik, kecaman, sindiran, dan tuntutan yang menyalahkan pihak tertentu dihitung negatif; dukungan, pujian, terima
+      kasih, dan doa dihitung positif; berita, informasi, dan ucapan duka murni dihitung netral.{% else %}Diberikan untuk
+      konten media sosial berdasarkan kata dan emoji yang menunjukkan penilaian, doa, kritik, atau dukungan.{% endif %}
+      Kata yang hanya melaporkan kejadian, seperti “tenggelam” atau “demo”, tidak dihitung sebagai negatif. Berita tidak
+      diberi label sentimen.</dd>
+    <dt>Emosi</dt><dd>Delapan emosi dasar Plutchik: senang, percaya, takut, terkejut, sedih, muak, marah, dan antisipasi.</dd>
+    <dt>Isu</dt><dd>Dikenali dari kata kunci yang disusun khusus untuk topik ini. Satu konten bisa membahas lebih dari satu isu.</dd>
+    {% if F.fokus %}<dt>{{ F.fokus.nama }}</dt><dd>Lensa untuk {{ F.fokus.ket }}. Isu yang termasuk: {{ F.fokus.narasi|join(', ') }}.</dd>{% endif %}
+    <dt>Engagement</dt><dd>Jumlah suka, komentar, repost, dan kutipan sebuah konten.</dd>
+  </dl>
+</section>
+
+<!-- ============================== WAKTU -->
+<section class="bagian" id="waktu">
+  {% call bab('waktu') %}Kapan percakapan ramai dan dari platform mana{% endcall %}
+  {% if F.teks.waktu %}<p class="lead">{{ F.teks.waktu }}</p>{% endif %}
+  {{ gambar('linimasa', 'Volume konten per ' ~ F.per, 'Jumlah konten per ' ~ F.per ~ ' untuk setiap platform.') }}
+  {% if F.puncak %}
+  <table class="data">
+    {{ tabel('Tiga puncak volume') }}
+    <thead><tr><th>{{ 'Pekan mulai' if F.pekanan else 'Tanggal' }}</th><th class="num">Konten</th><th>Isu yang paling banyak dibahas</th><th>Judul berita pada periode itu</th></tr></thead>
+    <tbody>{% for p in F.puncak %}<tr><td><b>{{ p.label|tgl }}</b></td><td class="num">{{ p.n|ang }}</td><td>{{ p.narasi|join('; ') or '–' }}</td><td class="kecil">{{ p.judul|join(' · ') or '–' }}</td></tr>{% endfor %}</tbody>
+  </table>
+  {% endif %}
+  <div class="fig2">
+    {{ gambar('kumulatif', 'Akumulasi konten', 'Total konten bertumpuk per platform.') }}
+    {{ gambar('jam', 'Jam unggah', 'Jumlah konten per jam (WIB) selama periode.') }}
+  </div>
+</section>
+
+<!-- ============================== SENTIMEN -->
+<section class="bagian" id="sentimen">
+  {% call bab('sentimen') %}Nada percakapan di media sosial{% endcall %}
+  {% if F.teks.sentimen %}<p class="lead">{{ F.teks.sentimen }}</p>{% endif %}
+  <div class="fig2">
+    {{ gambar('sen_ringkas', 'Komposisi sentimen', 'Konten media sosial.') }}
+    {{ gambar('emosi', 'Emosi Plutchik', 'Di luar konten tanpa emosi yang jelas.') }}
+  </div>
+  {% if F.teks.emosi %}<p class="prosa">{{ F.teks.emosi }}</p>{% endif %}
+  {% if F.sentimen_platform %}
+  <table class="data">
+    {{ tabel('Sentimen per platform (platform dengan minimal 30 konten)') }}
+    <thead><tr><th>Platform</th><th class="num">Konten</th><th class="num">Negatif</th><th class="num">Netral</th><th class="num">Positif</th><th>Komposisi</th></tr></thead>
+    <tbody>{% for s in F.sentimen_platform %}<tr><td><b>{{ np(s.nama) }}</b></td><td class="num">{{ s.n|ang }}</td><td class="num">{{ s.neg|pct }}</td><td class="num">{{ s.net|pct }}</td><td class="num">{{ s.pos|pct }}</td>
+      <td><div class="batang-sel"><i style="flex:{{ s.neg }};background:#e66767"></i><i style="flex:{{ s.net }};background:#d6d3ca"></i><i style="flex:{{ s.pos }};background:#3987e5"></i></div></td></tr>{% endfor %}</tbody>
+  </table>
+  {% endif %}
+  {{ gambar('sentimen_waktu', 'Sentimen per ' ~ F.per, 'Jumlah konten media sosial per label.') }}
+  {{ gambar('sentimen_tipe', 'Sentimen per tipe akun', 'Komposisi sentimen di setiap tipe akun.') }}
+</section>
+
+<!-- ============================== ISU -->
+<section class="bagian" id="narasi">
+  {% call bab('narasi') %}Apa yang dibicarakan dan siapa yang disebut{% endcall %}
+  {% if F.teks.narasi %}<p class="lead">{{ F.teks.narasi }}</p>{% endif %}
+  {{ gambar('narasi', 'Isu terbesar', 'Jumlah konten per isu.') }}
+  <div class="samping">
+    {{ gambar('aktor', 'Pihak yang paling sering disebut', 'Lembaga dan tokoh yang disebut di dalam konten.') }}
+    {% if F.teks.aktor %}<p class="prosa">{{ F.teks.aktor }}</p>{% endif %}
+  </div>
+  {{ gambar('narasi_waktu', 'Perubahan isu per ' ~ F.per, 'Delapan isu terbesar, bertumpuk.') }}
+  {% if F.fokus and F.fokus.n %}
+  <h2>{{ F.fokus.nama }}</h2>
+  {% if F.teks.fokus %}<p class="prosa">{{ F.teks.fokus }}</p>{% endif %}
+  {{ gambar('fokus', F.fokus.nama ~ ' dibanding seluruh konten', 'Porsi konten yang masuk lensa ini, per platform dan per ' ~ F.per ~ '.') }}
+  <table class="data">
+    {{ tabel(F.fokus.nama ~ ' per platform') }}
+    <thead><tr><th>Platform</th><th class="num">Konten dalam lensa</th><th class="num">Total konten</th><th class="num">Porsi</th></tr></thead>
+    <tbody>{% for p in F.fokus.platform %}<tr><td><b>{{ np(p.nama) }}</b></td><td class="num">{{ p.n|ang }}</td><td class="num">{{ p.dari|ang }}</td><td class="num">{{ p.pct|pct }}</td></tr>{% endfor %}</tbody>
+  </table>
+  {% endif %}
+</section>
+
+<!-- ============================== SNA -->
+{% if F.sna and F.sna.statistik %}
+<section class="bagian" id="sna">
+  {% call bab('sna') %}Siapa berinteraksi dengan siapa, dan apa isi tiap kelompok{% endcall %}
+  {% if F.teks.sna %}<p class="lead">{{ F.teks.sna }}</p>{% endif %}
+  <div class="glosarium">
+    <p class="glos-judul">Istilah yang dipakai di bagian ini dan bagian berikutnya</p>
+    <div><b>SNA (social network analysis)</b>Analisis hubungan antarakun berdasarkan siapa berinteraksi dengan siapa.</div>
+    <div><b>Node dan edge</b>Node adalah akun. Edge adalah interaksi antara dua akun: komentar, balasan, atau mention.</div>
+    <div><b>Degree</b>Jumlah interaksi yang diterima sebuah akun (in-degree) atau yang dikirimnya (out-degree).</div>
+    <div><b>Betweenness</b>Seberapa sering sebuah akun menjadi penghubung antara kelompok-kelompok akun yang berbeda.</div>
+    <div><b>Klaster</b>Kelompok akun yang lebih sering berinteraksi satu sama lain daripada dengan akun di luar kelompok. Dibentuk dengan algoritma Louvain.</div>
+    <div><b>Ego-network</b>Satu akun beserta semua akun yang terhubung langsung dengannya.</div>
+  </div>
+  {{ gambar('sna_sentimen', 'Graf SNA menurut sentimen', 'Warna edge: merah negatif, biru positif, abu-abu netral. Ukuran node sebanding dengan jumlah interaksi yang diterima. Label berbingkai adalah nama klaster.', 'fig-besar') }}
+  <div class="fig2">
+    {{ gambar('sna_emosi', 'Graf SNA menurut emosi', 'Warna edge menunjukkan emosi Plutchik.') }}
+    {{ gambar('sna_klaster', 'Graf SNA menurut klaster', 'Warna node menunjukkan klaster.') }}
+  </div>
+  {% if F.sna.wawasan %}
+  <h2>Ringkasan struktur graf</h2>
+  <div class="wawasan">{% for w in F.sna.wawasan %}<div><b>{{ w.judul }}</b>{{ w.isi }}</div>{% endfor %}</div>
+  {% endif %}
+  {% if F.sna.klaster %}
+  {% if F.sna.kurasi %}
+  <h2 class="halaman-baru">Isi tiap klaster</h2>
+  <p class="prosa">Nama dan catatan tiap klaster disusun dari isi percakapan di dalamnya.</p>
+  {% for k in F.sna.klaster %}
+  <div class="klaster">
+    <div class="kl-kepala"><span class="kl-no" style="background:{{ WK[k.no - 1] if k.no <= 10 else '#5a5954' }}">K{{ k.no }}</span>
+      <div><h3>{{ k.nama }}</h3><div class="kl-meta">{{ k.simpul|ang }} akun · {{ k.interaksi|ang }} interaksi · {{ k.platform }}</div></div></div>
+    <div class="kl-sent"><i style="flex:{{ k.sentimen.negatif }};background:#e66767"></i><i style="flex:{{ k.sentimen.netral }};background:#d6d3ca"></i><i style="flex:{{ k.sentimen.positif }};background:#3987e5"></i></div>
+    <div class="kl-sent-ket">Negatif {{ k.sentimen.negatif|pct }} · netral {{ k.sentimen.netral|pct }} · positif {{ k.sentimen.positif|pct }}{% if k.tokoh %} · akun sentral: {{ k.tokoh|join(', ') }}{% endif %}</div>
+    {% if k.butir %}<ul>{% for b in k.butir %}<li>{{ b }}</li>{% endfor %}</ul>
+    {% elif k.isu %}<p class="kl-isu">Isu utama: {{ k.isu|join(', ') }}.</p>{% endif %}
+  </div>
+  {% endfor %}
+  {% else %}
+  <h2>Klaster terbesar</h2>
+  <table class="data">
+    {{ tabel('Sepuluh klaster terbesar, ' ~ F.periode) }}
+    <thead><tr><th>Klaster</th><th>Akun sentral</th><th class="num">Akun</th><th class="num">Interaksi</th><th class="num">Negatif</th><th class="num">Positif</th><th>Isu utama</th></tr></thead>
+    <tbody>{% for k in F.sna.klaster %}<tr>
+      <td><span class="kl-titik" style="background:{{ WK[k.no - 1] if k.no <= 10 else '#5a5954' }}"></span><b>K{{ k.no }}</b></td>
+      <td class="kecil">{{ k.tokoh|join(', ') }}</td><td class="num">{{ k.simpul|ang }}</td><td class="num">{{ k.interaksi|ang }}</td>
+      <td class="num">{{ k.sentimen.negatif|pct(0) }}</td><td class="num">{{ k.sentimen.positif|pct(0) }}</td><td class="kecil">{{ k.isu|join('; ') or '–' }}</td></tr>{% endfor %}</tbody>
+  </table>
+  {% endif %}
+  {% endif %}
+  <div class="fig2">
+    {{ gambar('klaster_sent', 'Sentimen per klaster') }}
+    {{ gambar('klaster_emo', 'Emosi per klaster', 'Persentase tiap emosi di setiap klaster.') }}
+  </div>
+  {{ gambar('peran', 'Peran akun dalam graf', 'In-degree tertinggi (paling banyak menerima interaksi), out-degree tertinggi (paling aktif berinteraksi), dan betweenness tertinggi di luar akun-akun utama.') }}
+  {% if g.sna_berita %}
+  <div class="blok">
+  <h2>Graf pemberitaan</h2>
+  {% if F.teks.peta_berita %}<p class="prosa">{{ F.teks.peta_berita }}</p>{% endif %}
+  {{ gambar('sna_berita', 'Graf media dan aktor', 'Node kotak adalah media, node belah ketupat adalah aktor yang disebut di artikel. Edge menghubungkan media dengan aktor yang diberitakannya.', 'fig-besar') }}
+  </div>
+  {% endif %}
+</section>
+{% endif %}
+
+<!-- ============================== SUMBER -->
+<section class="bagian" id="sumber">
+  {% call bab('sumber') %}Siapa yang paling banyak mengunggah dan paling banyak mendapat respons{% endcall %}
+  {% if F.teks.sumber %}<p class="lead">{{ F.teks.sumber }}</p>{% endif %}
+  <div class="fig2">
+    {{ gambar('produktif', 'Akun dan media paling produktif', 'Menurut jumlah konten.') }}
+    {{ gambar('engagement', 'Engagement tertinggi', 'Suka, komentar, repost, dan kutipan.') }}
+  </div>
+  <div class="fig2">
+    {% if F.media %}<table class="data">{{ tabel('Media dengan artikel terbanyak') }}<thead><tr><th>Media</th><th class="num">Artikel</th></tr></thead>
+      <tbody>{% for m in F.media %}<tr><td>{{ m.nama }}</td><td class="num">{{ m.n|ang }}</td></tr>{% endfor %}</tbody></table>{% endif %}
+    {% if F.akun %}<table class="data">{{ tabel('Akun media sosial dengan engagement tertinggi') }}<thead><tr><th>Akun</th><th>Platform</th><th class="num">Engagement</th></tr></thead>
+      <tbody>{% for a in F.akun %}<tr><td>{{ a.nama }}</td><td>{{ np(a.platform) }}</td><td class="num">{{ a.eng|ang }}</td></tr>{% endfor %}</tbody></table>{% endif %}
+  </div>
+  <div class="fig2">
+    {{ gambar('tipe', 'Tipe akun', 'Jumlah konten per tipe akun atau media.') }}
+    {{ gambar('konsentrasi', 'Konsentrasi engagement', 'Porsi engagement yang dikumpulkan konten teratas.') }}
+  </div>
+  <div class="fig2">
+    {{ gambar('kata', 'Kata yang paling sering muncul', 'Kata umum dan nama topik tidak dihitung.') }}
+    {{ gambar('tagar', 'Tagar yang paling sering dipakai') }}
+  </div>
+</section>
+
+<!-- ============================== NEGATIF & POSITIF -->
+{% if F.neg %}<section class="bagian" id="negatif">{{ penyebar(F.neg, 'negatif', '#e66767') }}</section>{% endif %}
+{% if F.pos %}<section class="bagian" id="positif">{{ penyebar(F.pos, 'positif', '#3987e5') }}</section>{% endif %}
+
+<!-- ============================== KOORDINASI -->
+{% set K = F.koordinasi %}
+{% if K %}
+<section class="bagian" id="koordinasi">
+  {% call bab('koordinasi') %}Pola perilaku akun yang lazim pada amplifikasi terorganisasi{% endcall %}
+  <p class="lead">{{ F.teks.koordinasi }}</p>
+  <p class="prosa">Bagian ini memakai empat indikator: teks identik yang diunggah tiga akun atau lebih, unggahan yang
+    menandai enam akun atau lebih sekaligus, akun bervolume tinggi yang hampir selalu bernada sama, dan akun X yang dibuat
+    menjelang atau selama peristiwa lalu langsung aktif membahas topik ini. Indikator ini menunjukkan pola perilaku, bukan
+    bukti niat atau pembayaran. Akun resmi lembaga yang mengunggah rilis seragam juga bisa muncul di sini.</p>
+
+  <h2>1. Teks identik dari banyak akun</h2>
+  {% if K.kembar %}
+  <table class="data akun">
+    {{ tabel('Kelompok teks identik (tautan, mention, dan tanda baca diabaikan)' ~ ((', ' ~ K.kembar|length ~ ' dari ' ~ K.kembar_total ~ ' kelompok terbesar') if K.kembar_total > K.kembar|length else '')) }}
+    <thead><tr><th>Teks</th><th class="num">Akun</th><th class="num">Unggahan</th><th>Waktu</th><th>Contoh akun</th></tr></thead>
+    <tbody>{% for k in K.kembar %}<tr>
+      <td class="kecil">“{{ k.teks }}”<br><span class="ket">{{ k.platform }} · {{ k.sentimen }}</span></td>
+      <td class="num">{{ k.akun }}</td><td class="num">{{ k.unggahan }}</td>
+      <td class="kecil">{{ k.dari|tgl }}{% if k.sampai != k.dari %} – {{ k.sampai|tgl }}{% endif %}{% if k.jam is not none and k.jam < 48 %}<br><span class="ket">dalam {{ k.jam|lama }}</span>{% endif %}</td>
+      <td class="kecil">{{ k.contoh_akun|join(', ') }}</td></tr>{% endfor %}</tbody>
+  </table>
+  {% else %}<p class="prosa">Tidak ada teks identik yang diunggah tiga akun atau lebih.</p>{% endif %}
+
+  <h2>2. Mention massal</h2>
+  {% if K.massal_n %}
+  <p class="prosa">{{ K.massal_n|ang }} unggahan dari {{ K.massal_pengirim|ang }} akun menandai enam akun atau lebih di badan
+    teks. Deretan mention di awal balasan tidak dihitung karena X menambahkannya secara otomatis.</p>
+  <div class="fig2">
+    <table class="data">{{ tabel('Akun pengirim mention massal') }}
+      <thead><tr><th>Akun</th><th>Platform</th><th class="num">Unggahan</th></tr></thead>
+      <tbody>{% for a in K.massal_akun %}<tr><td>{{ a.nama }}</td><td>{{ np(a.platform) }}</td><td class="num">{{ a.n }}</td></tr>{% endfor %}</tbody></table>
+    <table class="data">{{ tabel('Akun yang paling sering ditandai') }}
+      <thead><tr><th>Akun</th><th class="num">Ditandai</th></tr></thead>
+      <tbody>{% for a in K.massal_ditag %}<tr><td>{{ a.nama }}</td><td class="num">{{ a.n }}</td></tr>{% endfor %}</tbody></table>
+  </div>
+  {% else %}<p class="prosa">Tidak ada unggahan yang menandai enam akun atau lebih di badan teks.</p>{% endif %}
+  {% if K.utas_n >= 10 %}
+  <p class="prosa"><b>Catatan tentang utas panjang.</b> {{ K.utas_n|ang }} balasan diawali deretan mention yang sama:
+    {{ K.utas_ditag|map(attribute='nama')|join(', ') }}. Ini terjadi ketika banyak akun membalas di dalam satu utas. Di graf
+    SNA, setiap balasan seperti ini menghasilkan banyak edge sekaligus, sehingga akun-akun tersebut tampak memiliki
+    in-degree tinggi walaupun tidak disapa langsung.</p>
+  {% endif %}
+
+  <h2>3. Akun bervolume tinggi dengan satu nada</h2>
+  {% if K.satu_nada %}
+  <p class="prosa">Akun yang mengunggah minimal {{ K.satu_nada_batas }} konten (1% teratas menurut volume) dan 60% atau lebih
+    konten tersebut bernada sama.</p>
+  <table class="data">{{ tabel('Akun satu nada' ~ ((', ' ~ K.satu_nada|length ~ ' dari ' ~ K.satu_nada_total ~ ' akun') if K.satu_nada_total > K.satu_nada|length else '')) }}
+    <thead><tr><th>Akun</th><th>Platform</th><th class="num">Konten</th><th>Nada</th><th class="num">Porsi nada</th></tr></thead>
+    <tbody>{% for a in K.satu_nada %}<tr><td>{{ a.nama }}</td><td>{{ np(a.platform) }}</td><td class="num">{{ a.n }}</td><td>{{ a.nada }}</td><td class="num">{{ a.porsi|pct(0) }}</td></tr>{% endfor %}</tbody></table>
+  {% else %}<p class="prosa">Tidak ada akun bervolume tinggi yang hampir selalu bernada sama.</p>{% endif %}
+
+  <h2>4. Akun X baru yang langsung aktif</h2>
+  {% if K.akun_baru %}
+  <table class="data">{{ tabel('Akun X yang dibuat sejak ' ~ (K.akun_baru_sejak|tgl) ~ ' dan mengunggah minimal dua konten tentang topik ini' ~ ((' (' ~ K.akun_baru|length ~ ' teraktif dari ' ~ K.akun_baru_total ~ ' akun)') if K.akun_baru_total > K.akun_baru|length else '')) }}
+    <thead><tr><th>Akun</th><th>Dibuat</th><th class="num">Pengikut</th><th class="num">Konten</th><th>Nada dominan</th></tr></thead>
+    <tbody>{% for a in K.akun_baru %}<tr><td>{{ a.nama }}</td><td>{{ a.dibuat|tgl }}</td><td class="num">{{ a.followers|ang }}</td><td class="num">{{ a.n }}</td><td>{{ a.nada }}</td></tr>{% endfor %}</tbody></table>
+  {% else %}<p class="prosa">Tidak ada akun X baru yang aktif membahas topik ini.</p>{% endif %}
+</section>
+{% endif %}
+
+<!-- ============================== KESIMPULAN -->
+<section class="bagian" id="kesimpulan">
+  {% call bab('kesimpulan') %}{% if F.analis %}Catatan analis{% if F.kesimpulan_tanggal %} per {{ F.kesimpulan_tanggal }}{% endif %}{% else %}Disusun dari data {{ F.periode }}{% endif %}{% endcall %}
+  <h2>Kesimpulan</h2>
+  <ol class="simpul">{% for k in F.kesimpulan %}<li><b>{{ k.judul }}</b>{{ k.isi }}</li>{% endfor %}</ol>
+  {% if F.rekomendasi %}
+  <h2>Rekomendasi</h2>
+  <ul class="rekom">{% for r in F.rekomendasi %}<li>{{ r }}</li>{% endfor %}</ul>
+  {% endif %}
+  <h2>Catatan</h2>
+  <ul class="catatan">
+    <li>Data dikumpulkan lewat pencarian kata kunci di berita daring, X, YouTube, Instagram, dan Threads. Percakapan di
+      grup tertutup (WhatsApp, Facebook) dan TikTok tidak tercakup.</li>
+    {% if F.platform_kosong %}<li>Tidak ada konten dari {{ F.platform_kosong|map('replace', 'X (Twitter)', 'X')|join(', ') }} pada periode ini.</li>{% endif %}
+    <li>Indikator amplifikasi menunjukkan pola perilaku akun, bukan bukti niat atau pembayaran.</li>
+    <li>Angka dalam laporan ini berlaku untuk data per {{ F.diperbarui }}.</li>
+  </ul>
+</section>
+</body>
+</html>

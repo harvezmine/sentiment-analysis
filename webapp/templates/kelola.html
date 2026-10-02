@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+
+{% block isi %}
+<section class="kepala kel-kepala">
+  <div>
+    <p class="kepala-atas">Kelola · {{ T.NAMA }}</p>
+    <h1>Kelola data dan analisis</h1>
+    <p class="kepala-lede">Perbarui data, periksa label sentimen, beri nama klaster, dan siapkan kesimpulan laporan
+      dari sini. Pekerjaan berjalan di antrean, jadi halaman ini boleh ditutup saat panen berlangsung.</p>
+  </div>
+  {% if buatan_web %}<a class="tombol hantu kecil" href="/kelola/topik-baru?ubah={{ slug }}"><svg class="ik"><use href="#ik-atur"/></svg>Ubah konfigurasi topik</a>{% endif %}
+</section>
+
+<nav class="kel-tab" role="tablist" aria-label="Bagian kelola">
+  <button type="button" role="tab" data-tab="panen" class="aktif">Panen</button>
+  <button type="button" role="tab" data-tab="validasi">Validasi sentimen</button>
+  <button type="button" role="tab" data-tab="klaster">Klaster</button>
+  <button type="button" role="tab" data-tab="kesimpulan">Kesimpulan</button>
+  <button type="button" role="tab" data-tab="ai">AI</button>
+</nav>
+
+<!-- ============================== PANEN -->
+<section class="kel-bagian" id="tab-panen" role="tabpanel">
+  <div class="kel-pipa" id="kel-pipa"><p class="memuat kerangka">Memuat</p></div>
+  <div class="kisi">
+    <div class="panel s12">
+      <h2>Antrean dan riwayat</h2>
+      <p class="ket">Panen berjalan satu per satu, jadi Instagram dan Threads tidak pernah bersamaan. Klik baris untuk melihat log.</p>
+      <div id="kel-antrean"><p class="memuat">Memuat</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== VALIDASI -->
+<section class="kel-bagian" id="tab-validasi" role="tabpanel" hidden>
+  <div class="kisi">
+    <div class="panel s12">
+      <h2>Seberapa tepat label sentimennya?</h2>
+      <p class="ket">Ambil sampel acak, beri label sendiri, lalu bandingkan dengan label aturan kata kunci dan label AI.
+        Hasilnya menentukan sumber label mana yang dipakai dashboard, graf SNA, dan laporan untuk topik ini.</p>
+      <div class="kel-ringkas" id="val-ringkas"></div>
+      <div class="kel-aksi">
+        <label class="kel-pilih">Ukuran sampel
+          <select id="val-n"><option>100</option><option selected>150</option><option>200</option><option>300</option></select></label>
+        <button type="button" class="tombol hantu kecil" id="val-buat"><svg class="ik"><use href="#ik-ulang"/></svg>Buat sampel baru</button>
+        <label class="kel-centang"><input type="checkbox" id="val-sembunyi" checked> Sembunyikan label mesin sampai saya menilai</label>
+        <span class="kel-status" id="val-status"></span>
+      </div>
+    </div>
+
+    <div class="panel s7">
+      <h2>Beri label</h2>
+      <p class="ket">Pintasan papan ketik: 1 negatif, 2 netral, 3 positif, 4 tidak relevan, ← → pindah konten.</p>
+      <div id="val-kartu"><p class="memuat">Belum ada sampel.</p></div>
+    </div>
+    <div class="panel s5">
+      <h2>Perbandingan dengan label manusia</h2>
+      <p class="ket">Baris = label kamu, kolom = label mesin.</p>
+      <div id="val-matriks"><p class="memuat">Beri label beberapa konten dulu.</p></div>
+    </div>
+
+    <div class="panel s12">
+      <h2>Sumber label untuk topik ini</h2>
+      <p class="ket" id="lab-ket">Memuat</p>
+      <div class="kel-sumber">
+        <div class="segmen" id="lab-sumber"><button type="button" data-v="aturan">Aturan kata kunci</button><button type="button" data-v="ai">AI</button></div>
+        <label class="kel-centang"><input type="checkbox" id="lab-buang"> Buang konten yang dinilai AI tidak relevan</label>
+        <label class="kel-centang"><input type="checkbox" id="lab-laporan"> Laporan per rentang memakai AI untuk nama klaster dan kesimpulan</label>
+      </div>
+      <div class="kel-label-ai" id="lab-ai"></div>
+    </div>
+
+    <div class="panel s12">
+      <h2>Konten yang labelnya berbeda</h2>
+      <p class="ket">Konten yang kamu nilai berbeda dari label aturan atau label AI.</p>
+      <div id="val-beda"><p class="memuat">Belum ada.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== KLASTER -->
+<section class="kel-bagian" id="tab-klaster" role="tabpanel" hidden>
+  <div class="kisi">
+    <div class="panel s12">
+      <h2>Nama dan catatan klaster</h2>
+      <p class="ket">Klaster graf SNA seluruh periode. Nama yang disimpan di sini dipakai dashboard dan laporan setelah
+        graf dibangun ulang. Draf AI hanya saran: periksa dengan contoh unggahan sebelum disimpan.</p>
+      <div class="kel-aksi">
+        <button type="button" class="tombol hantu kecil" id="kl-draf-semua">Buat draf AI untuk semua klaster</button>
+        <button type="button" class="tombol utama kecil" id="kl-terapkan" hidden>Terapkan ke graf</button>
+        <span class="kel-status" id="kl-status"></span>
+      </div>
+    </div>
+  </div>
+  <div id="kl-daftar"><p class="memuat kerangka">Memuat</p></div>
+</section>
+
+<!-- ============================== KESIMPULAN -->
+<section class="kel-bagian" id="tab-kesimpulan" role="tabpanel" hidden>
+  <div class="kisi">
+    <div class="panel s12">
+      <h2>Kesimpulan dan rekomendasi laporan</h2>
+      <p class="ket">Pilih periode. Versi yang disetujui di sini dipakai laporan PDF periode itu dan tampil sebagai catatan analis.</p>
+      <div class="kel-aksi">
+        <div class="kel-preset" id="ks-preset"></div>
+        <label class="kel-pilih">Dari<input type="date" id="ks-dari" value="{{ penuh_dari }}" min="{{ penuh_dari }}" max="{{ penuh_sampai }}"></label>
+        <label class="kel-pilih">Sampai<input type="date" id="ks-sampai" value="{{ penuh_sampai }}" min="{{ penuh_dari }}" max="{{ penuh_sampai }}"></label>
+        <button type="button" class="tombol hantu kecil" id="ks-muat">Muat</button>
+      </div>
+      <p class="kel-sumber-ket" id="ks-sumber"></p>
+    </div>
+    <div class="panel s12">
+      <div class="kel-aksi">
+        <button type="button" class="tombol hantu kecil" id="ks-draf">Buat draf dengan AI</button>
+        <button type="button" class="tombol hantu kecil" id="ks-isi-draf" hidden>Isi dari draf AI</button>
+        <button type="button" class="tombol hantu kecil" id="ks-isi-topik" hidden>Isi dari catatan analis</button>
+        <span class="kel-status" id="ks-status"></span>
+      </div>
+      <div class="kel-peringatan" id="ks-angka" hidden></div>
+      <h3 class="kel-sub">Kesimpulan</h3>
+      <div id="ks-daftar"></div>
+      <button type="button" class="tombol hantu kecil" id="ks-tambah"><svg class="ik"><use href="#ik-tambah"/></svg>Tambah poin</button>
+      <h3 class="kel-sub">Rekomendasi <small>satu per baris</small></h3>
+      <textarea id="ks-rekom" rows="6" class="kel-teks"></textarea>
+      <div class="kel-aksi kel-aksi-akhir">
+        <button type="button" class="tombol utama" id="ks-setujui">Setujui untuk laporan</button>
+        <button type="button" class="tombol hantu kecil" id="ks-hapus" hidden>Hapus persetujuan</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== AI -->
+<section class="kel-bagian" id="tab-ai" role="tabpanel" hidden>
+  <div class="kisi">
+    <div class="panel s5">
+      <h2>Penyedia AI</h2>
+      <p class="ket">Key disimpan di <code id="ai-lokasi">~/.config/virgo-sentiment/ai.json</code>, di luar folder proyek, dan tidak pernah dikirim ke peramban.</p>
+      <div id="ai-status"><p class="memuat">Memuat</p></div>
+      <form class="kel-form" id="ai-form" autocomplete="off">
+        <label>API key baru <input type="password" id="ai-key" placeholder="kosongkan bila tidak diganti"></label>
+        <label>Model klasifikasi
+          <select id="ai-model"><option value="deepseek-flash">deepseek-flash (V4.1 Flash)</option><option value="deepseek-v4-pro">deepseek-v4-pro</option></select></label>
+        <label>Model penalaran (klaster, kesimpulan, topik)
+          <select id="ai-model-nalar"><option value="deepseek-flash">deepseek-flash (V4.1 Flash)</option><option value="deepseek-v4-pro">deepseek-v4-pro</option></select></label>
+        <label>Permintaan paralel <input type="number" id="ai-paralel" min="1" max="16"></label>
+        <label>Batas biaya per tugas (USD) <input type="number" id="ai-batas" min="0.05" max="50" step="0.05"></label>
+        <button type="submit" class="tombol utama kecil">Simpan</button>
+      </form>
+    </div>
+    <div class="panel s7">
+      <h2>Pemakaian 30 hari</h2>
+      <p class="ket">Perkiraan dari jumlah token tiap panggilan. Tagihan resmi ada di platform.deepseek.com.</p>
+      <div id="ai-pakai"><p class="memuat">Memuat</p></div>
+    </div>
+    <div class="panel s12 kel-catatan">
+      <h2>Yang dikirim ke AI</h2>
+      <p class="ket">Teks unggahan dan nama akun dikirim ke penyedia AI (DeepSeek, server di Tiongkok) untuk diberi
+        label atau dirangkum. Kredensial panen dan berkas data tidak pernah dikirim. Semua hasil AI tersimpan di
+        <code>data/&lt;topik&gt;/_ai/</code> dan bisa dihapus kapan saja.</p>
+    </div>
+  </div>
+</section>
+
+<div class="kel-log" id="kel-log" hidden>
+  <div class="kel-log-kepala"><b id="kel-log-judul"></b>
+    <span><button type="button" class="tombol hantu kecil" id="kel-log-batal" hidden>Batalkan</button>
+    <button type="button" class="tombol hantu kecil" id="kel-log-tutup">Tutup</button></span></div>
+  <pre id="kel-log-isi"></pre>
+</div>
+{% endblock %}
+
+{% block skrip %}
+<script>window.KELOLA = {slug: {{ slug|tojson }}, nama: {{ T.NAMA|tojson }}, penuh: [{{ penuh_dari|tojson }}, {{ penuh_sampai|tojson }}]};</script>
+<script src="/static/kelola.js"></script>
+{% endblock %}

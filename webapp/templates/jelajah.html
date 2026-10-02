@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block isi %}
+<section class="kepala">
+  <div>
+    <p class="kepala-atas">Data mentah</p>
+    <h1>Jelajah konten</h1>
+    <p class="kepala-lede">Cari, urutkan, dan telusuri seluruh konten yang terkumpul dari semua platform.
+      Filter di atas ikut berlaku.</p>
+  </div>
+</section>
+<div class="panel s12" style="margin-top:22px">
+  <div class="cari">
+    <div class="cari-input"><svg class="ik"><use href="#ik-cari"/></svg>
+      <input id="q" placeholder="Cari kata di judul atau isi, misalnya manifes, kapal tua, santunan"></div>
+    <select id="urut">
+      <option value="engagement">Urutkan: engagement</option>
+      <option value="terbaru">Urutkan: terbaru</option>
+    </select>
+    <button id="cari-btn" class="tombol utama" type="button">Cari</button>
+  </div>
+
+  <div id="tabel"><p class="memuat">Memuat…</p></div>
+  <div class="hal">
+    <button id="prev" class="tombol hantu kecil" type="button">← Sebelumnya</button>
+    <span id="info-hal"></span>
+    <button id="next" class="tombol hantu kecil" type="button">Berikutnya →</button>
+  </div>
+</div>
+{% endblock %}
+
+{% block skrip %}
+<script>
+let hal = 1;
+
+async function muat() {
+  document.getElementById('tabel').innerHTML = '<p class="memuat">Memuat…</p>';
+  const d = await ambil('/api/konten', {
+    hal, urut: document.getElementById('urut').value,
+    cari: document.getElementById('q').value,
+  });
+  if (!d.baris.length) {
+    document.getElementById('tabel').innerHTML = '<p class="memuat">Tidak ada hasil.</p>';
+  } else {
+    const baris = d.baris.map(b => `
+      <tr>
+        <td style="white-space:nowrap"><i class="titik" style="background:${WARNA_PLATFORM[b.platform] || INK[4]};margin-right:7px"></i>${b.platform}</td>
+        <td style="white-space:nowrap">${tglPendek(b.tanggal)}</td>
+        <td><b>${aman(b.penulis)}</b><div style="color:var(--ink-3);font-size:12px">${aman(b.tipe_penulis)}</div></td>
+        <td style="color:var(--ink-2);max-width:620px">${b.judul ? `<b style="color:var(--ink)">${aman(b.judul)}</b><br>` : ''}${aman((b.teks || '').slice(0, 300))}
+            ${b.url ? ` <a href="${aman(b.url)}" target="_blank" rel="noopener">buka</a>` : ''}</td>
+        <td><span class="lencana ${kelasSentimen(b.sentimen)}">${b.sentimen}</span></td>
+        <td style="color:var(--ink-3)">${aman(b.narasi || '-')}</td>
+        <td class="num">${angka(b.engagement)}</td>
+      </tr>`).join('');
+    document.getElementById('tabel').innerHTML =
+      `<table><thead><tr><th>Platform</th><th>Tanggal</th><th>Penulis</th><th>Konten</th>
+       <th>Sentimen</th><th>Narasi</th><th class="num">Engagement</th>
+       </tr></thead><tbody>${baris}</tbody></table>`;
+  }
+  const maks = Math.max(1, Math.ceil(d.total / d.per));
+  document.getElementById('info-hal').textContent =
+    `Halaman ${d.hal} dari ${maks} · ${angka(d.total)} baris`;
+  document.getElementById('prev').disabled = d.hal <= 1;
+  document.getElementById('next').disabled = d.hal >= maks;
+}
+
+document.getElementById('cari-btn').onclick = () => { hal = 1; muat(); };
+document.getElementById('q').addEventListener('keydown', e => {
+  if (e.key === 'Enter') { hal = 1; muat(); }
+});
+document.getElementById('urut').onchange = () => { hal = 1; muat(); };
+document.getElementById('prev').onclick = () => { if (hal > 1) { hal--; muat(); } };
+document.getElementById('next').onclick = () => { hal++; muat(); };
+pasangFilter(() => { hal = 1; muat(); });
+muat();
+</script>
+{% endblock %}

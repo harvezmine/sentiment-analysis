@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block isi %}
+<section class="kepala">
+  <div>
+    <p class="kepala-atas">{{ T.NAMA }} · metodologi</p>
+    <h1>Metodologi &amp; batasan</h1>
+    <p class="kepala-lede">Cara data topik ini dikumpulkan, dibersihkan, dan dilabeli, serta hal-hal yang
+      perlu diketahui sebelum mengutip angkanya.</p>
+  </div>
+</section>
+<div class="prosa" style="margin-top:22px">
+{% include "topik/" ~ slug ~ "_metode.html" ignore missing %}
+</div>
+{% endblock %}

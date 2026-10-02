@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+
+{% block isi %}
+<section class="kepala">
+  <div>
+    <p class="kepala-atas">{{ 'Ubah konfigurasi topik' if ubah else 'Topik baru' }}</p>
+    <h1>{{ 'Konfigurasi ' ~ T.NAMA if ubah else 'Siapkan topik pemantauan baru' }}</h1>
+    <p class="kepala-lede">Kata kunci menentukan konten apa yang dikumpulkan, dan aturan relevansi menentukan konten mana
+      yang dihitung. Periksa keduanya dengan contoh teks sebelum menjalankan panen.</p>
+  </div>
+</section>
+
+<div class="tb-langkah" id="tb-langkah"><span data-l="1">1 · Gambaran topik</span><span data-l="2">2 · Kata kunci dan aturan</span><span data-l="3">3 · Simpan dan panen</span></div>
+
+<!-- ============================== LANGKAH 1 -->
+<section class="kisi" id="tb-1" {% if ubah %}hidden{% endif %}>
+  <div class="panel s12">
+    <h2>Gambaran topik</h2>
+    <p class="ket">Tulis seperti menjelaskan ke rekan analis: apa yang terjadi, di mana, siapa saja yang terlibat, dan isu apa yang ingin dipantau.</p>
+    <form class="kel-form tb-kisi" id="tb-brief" autocomplete="off">
+      <label>Nama topik (pendek) <input type="text" id="b-nama" maxlength="80" placeholder="mis. Tambang Nikel Wawonii" required></label>
+      <label>Wilayah <input type="text" id="b-wilayah" placeholder="mis. Pulau Wawonii, Konawe Kepulauan, Sulawesi Tenggara"></label>
+      <label class="lebar">Deskripsi peristiwa dan isu
+        <textarea id="b-deskripsi" rows="6" required placeholder="Kronologi singkat, tuntutan warga, kebijakan terkait, momen penting dan tanggalnya…"></textarea></label>
+      <label>Pihak yang terlibat <input type="text" id="b-pihak" placeholder="perusahaan, kementerian, pemda, kelompok warga…"></label>
+      <label>Catatan untuk kata kunci <input type="text" id="b-catatan" placeholder="mis. hindari kata 'nikel' saja karena terlalu umum"></label>
+      <label>Mulai <input type="date" id="b-dari" required></label>
+      <label>Sampai <small>kosongkan bila pemantauan masih berjalan</small><input type="date" id="b-sampai"></label>
+    </form>
+    <div class="kel-aksi">
+      {% if ai_siap %}<button type="button" class="tombol utama" id="tb-ai">Buat draf dengan AI</button>{% endif %}
+      <button type="button" class="tombol hantu" id="tb-manual">Isi manual</button>
+      <span class="kel-status" id="tb-status1">{% if not ai_siap %}API key AI belum diatur (Kelola › AI), jadi draf diisi manual.{% endif %}</span>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== LANGKAH 2 -->
+<section class="kisi" id="tb-2" {% if not ubah %}hidden{% endif %}>
+  <div class="panel s12" id="tb-hasil" hidden>
+    <h2>Hasil uji draf</h2>
+    <p class="ket" id="tb-hasil-ket"></p>
+    <div id="tb-hasil-isi"></div>
+  </div>
+  <div class="panel s12">
+    <h2>Identitas dan periode</h2>
+    <p class="ket">Satu entri per baris pada setiap daftar.</p>
+    <div class="kel-form tb-kisi">
+      <label>Slug <small>alamat dashboard, huruf kecil tanpa spasi</small><input type="text" id="k-slug" maxlength="31" {% if ubah %}readonly{% endif %}></label>
+      <label>Nama topik <input type="text" id="k-nama" maxlength="80"></label>
+      <label>Judul dashboard <input type="text" id="k-judul" maxlength="140"></label>
+      <label>Judul sampul laporan <input type="text" id="k-judul_laporan" maxlength="140"></label>
+      <label class="lebar">Konteks (tampil di dashboard dan laporan) <textarea id="k-lede" rows="3"></textarea></label>
+      <label>Mulai <input type="date" id="k-dari"></label>
+      <label>Sampai <small>kosong = berjalan sampai hari ini</small><input type="date" id="k-sampai"></label>
+    </div>
+  </div>
+  <div class="panel s6">
+    <h2>Kata kunci pencarian</h2>
+    <p class="ket">Frasa dalam tanda petik dicari persis. Tagar Instagram tanpa #.</p>
+    <div class="kel-form">
+      <label>Berita (Google News) <textarea id="k-kueri_berita" rows="8"></textarea></label>
+      <label>YouTube <textarea id="k-kueri_yt" rows="5"></textarea></label>
+      <label>X <textarea id="k-kueri_x" rows="4"></textarea></label>
+      <label>Tagar Instagram <textarea id="k-tagar_ig" rows="3"></textarea></label>
+      <label>Threads <textarea id="k-kueri_threads" rows="3"></textarea></label>
+      <label>Media lokal (domain) <textarea id="k-situs_lokal" rows="3" placeholder="mis. kendaripos.co.id"></textarea></label>
+    </div>
+  </div>
+  <div class="panel s6">
+    <h2>Aturan relevansi</h2>
+    <p class="ket">Konten dihitung bila memuat istilah wajib, atau memuat kedua sisi sebuah pasangan tanpa frasa pengecualian.</p>
+    <div class="kel-form">
+      <label>Istilah wajib <small>cukup satu untuk relevan</small><textarea id="k-wajib" rows="5"></textarea></label>
+      <label>Pasangan <small>format: istilah ambigu, … =&gt; konteks, …</small><textarea id="k-pasangan" rows="5" placeholder="wawonii => tambang, nikel, smelter"></textarea></label>
+      <label>Frasa pengecualian <small>menandai topik lain dengan kata yang sama</small><textarea id="k-kecuali" rows="4"></textarea></label>
+      <label>Kata nama topik untuk disembunyikan dari awan kata <textarea id="k-stop" rows="2"></textarea></label>
+    </div>
+  </div>
+  <div class="panel s6">
+    <h2>Isu dan aktor</h2>
+    <p class="ket">Format: Nama: kata, kata, … (huruf kecil). Satu isu atau aktor per baris.</p>
+    <div class="kel-form">
+      <label>Isu (narasi) <textarea id="k-narasi" rows="10"></textarea></label>
+      <label>Aktor <textarea id="k-aktor" rows="8"></textarea></label>
+    </div>
+  </div>
+  <div class="panel s6">
+    <h2>Sentimen dan lensa</h2>
+    <p class="ket">Membantu aturan sentimen membaca konteks topik ini. Pisahkan dengan koma.</p>
+    <div class="kel-form">
+      <label>Pihak yang sering dikritik <input type="text" id="k-pihak"></label>
+      <label>Pihak yang sering dipuji <input type="text" id="k-didukung"></label>
+      <label>Kata yang tampak menilai tetapi netral di topik ini <input type="text" id="k-abaikan"></label>
+      <label>Kata nama topik yang juga kata sifat (mis. tangguh) <input type="text" id="k-samarkan"></label>
+      <label>Nama lensa fokus <input type="text" id="k-fokus_nama" placeholder="mis. Fokus tuntutan warga"></label>
+      <label>Keterangan lensa <input type="text" id="k-fokus_ket" placeholder="konten yang menyentuh …"></label>
+      <label>Isu yang masuk lensa <input type="text" id="k-fokus_narasi" placeholder="nama isu, dipisah koma"></label>
+      <label>Periode cepat <small>format: label | YYYY-MM-DD | YYYY-MM-DD</small><textarea id="k-preset" rows="3"></textarea></label>
+    </div>
+  </div>
+  <div class="panel s12">
+    <h2>Uji dengan contoh teks</h2>
+    <p class="ket">Tempel judul berita atau unggahan, satu per baris, termasuk contoh yang seharusnya tidak relevan.</p>
+    <div class="tb-uji">
+      <textarea id="tb-uji-teks" rows="8" class="kel-teks"></textarea>
+      <div id="tb-uji-hasil"><p class="memuat">Belum diuji.</p></div>
+    </div>
+    <div class="kel-aksi"><button type="button" class="tombol hantu kecil" id="tb-uji">Uji</button></div>
+  </div>
+  <div class="panel s12">
+    <div class="kel-aksi">
+      {% if not ubah %}<button type="button" class="tombol hantu" id="tb-kembali">← Kembali</button>{% endif %}
+      <button type="button" class="tombol utama" id="tb-simpan">{{ 'Simpan perubahan' if ubah else 'Simpan topik' }}</button>
+      {% if ubah %}<button type="button" class="tombol hantu kecil" id="tb-hapus">Hapus topik</button>{% endif %}
+      <span class="kel-status" id="tb-status2"></span>
+    </div>
+  </div>
+</section>
+{% endblock %}
+
+{% block skrip %}
+<script>window.TOPIK_BARU = {ubah: {{ ubah|tojson }}};</script>
+<script src="/static/topik_baru.js"></script>
+{% endblock %}

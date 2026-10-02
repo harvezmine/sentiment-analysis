@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<title>Laporan · {{ F.T.NAMA }}</title>
+<style>{{ css }}
+@page { size: A4; margin: 0; }
+</style>
+</head>
+<body>
+<section class="sampul">
+  <div class="sp-atas">
+    <span class="sp-merek">
+      <svg viewBox="0 0 24 24"><rect x="3" y="12" width="3.2" height="8" rx="1.2" fill="currentColor" opacity=".55"/><rect x="8.4" y="8" width="3.2" height="12" rx="1.2" fill="currentColor" opacity=".75"/><rect x="13.8" y="10.5" width="3.2" height="9.5" rx="1.2" fill="currentColor" opacity=".55"/><path d="M3.5 9.5l5.6-4.2 5.4 3 6-5" fill="none" stroke="#7fb0ee" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span><b>Analisa Sentimen</b><br>Laporan percakapan publik</span>
+    </span>
+  </div>
+
+  <div class="sp-judul">
+    <p class="sp-eyebrow">Laporan percakapan publik</p>
+    <h1>{{ F.judul }}</h1>
+    <p class="sp-periode">{{ F.periode }}</p>
+    <p class="sp-lede">{{ F.lede }}</p>
+  </div>
+
+  <div class="sp-angka">
+    <div><small>Konten dianalisis</small><b>{{ F.total|ang }}</b></div>
+    <div><small>Akun dan media</small><b>{{ F.penulis|ang }}</b></div>
+    <div><small>Engagement</small><b>{{ F.engagement|ang }}</b></div>
+    <div><small>Sumber</small><b>{{ F.platform|length }} platform</b></div>
+  </div>
+
+  {% if g.sna_sentimen %}<div class="sp-gambar"><img src="{{ g.sna_sentimen.src }}" alt=""></div>{% endif %}
+
+  <div class="sp-kaki">
+    <span>Disusun {{ F.dibuat }}</span>
+    <span>Data per {{ F.diperbarui }}</span>
+  </div>
+</section>
+</body>
+</html>

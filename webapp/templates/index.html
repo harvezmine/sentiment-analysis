@@ -1,0 +1,412 @@
+{% extends "base.html" %}
+
+{% block subnav %}
+<nav class="subnav" aria-label="Bagian halaman"><div class="subnav-dalam">
+  <a href="#waktu"><span>01</span>Tren volume</a>
+  <a href="#sentimen"><span>02</span>Sentimen &amp; emosi</a>
+  <a href="#sna"><span>03</span>SNA</a>
+  <a href="#narasi"><span>04</span>Isu &amp; aktor</a>
+  <a href="#penulis"><span>05</span>Akun &amp; media</a>
+  <a href="#bahasa"><span>06</span>Bahasa</a>
+</div></nav>
+{% endblock %}
+
+{% block isi %}
+<section class="kepala">
+  <div>
+    <p class="kepala-atas">{{ T.ATAS }}</p>
+    <h1>{{ T.JUDUL }}</h1>
+    <p class="kepala-lede">{{ T.LEDE }}</p>
+  </div>
+  <dl class="statistik" id="kpi"></dl>
+  <div class="komposisi" id="komposisi"></div>
+</section>
+
+<!-- 01 -->
+<h2 class="bagian" id="waktu">Tren volume<span>Jumlah konten per waktu dan per platform</span></h2>
+<div class="kisi">
+  <div class="panel s8">
+    <h2>Volume {{ per }}</h2>
+    <p class="ket">{{ T.CATATAN_LINIMASA }}</p>
+    <div class="kanvas"><canvas id="g-linimasa"></canvas></div>
+  </div>
+  <div class="panel s4">
+    <h2>Akumulasi</h2>
+    <p class="ket">Total konten bertumpuk per platform</p>
+    <div class="kanvas"><canvas id="g-kumulatif"></canvas></div>
+  </div>
+  <div class="panel s8">
+    <h2>Peta panas jam unggah</h2>
+    <p class="ket">Baris {{ "pekan (tanggal awal pekan)" if pekanan else "tanggal" }}, kolom jam WIB; warna lebih terang berarti lebih banyak konten</p>
+    <div id="heatmap"><p class="memuat kerangka">Memuat</p></div>
+  </div>
+  <div class="panel s4">
+    <h2>Distribusi per jam</h2>
+    <p class="ket">Total konten per jam (WIB) selama periode</p>
+    <div class="kanvas"><canvas id="g-jam"></canvas></div>
+  </div>
+</div>
+
+<!-- 02 -->
+<h2 class="bagian" id="sentimen">Sentimen &amp; emosi<span{% if not label_info.akurasi %} class="waspada"{% endif %}>{{ 'Label oleh AI' if label_info.sumber == 'ai' else 'Label berbasis aturan kata kunci' }}{% if label_info.akurasi %}, {{ (100 * label_info.akurasi)|round|int }}% cocok dengan {{ label_info.n }} sampel berlabel manual{% else %}, belum divalidasi dengan sampel manual{% endif %}</span></h2>
+<div class="kisi">
+  <div class="panel s4">
+    <h2>Komposisi sentimen</h2>
+    <p class="ket">Media sosial; berita tidak dihitung</p>
+    <div class="kanvas pendek"><div class="sen-ringkas" id="sen-ringkas"></div></div>
+  </div>
+  <div class="panel s8">
+    <h2>Sentimen {{ per }}</h2>
+    <p class="ket">Konten media sosial per label</p>
+    <div class="kanvas pendek"><canvas id="g-sentimen-harian"></canvas></div>
+  </div>
+  <div class="panel s7">
+    <h2>Sentimen per tipe akun</h2>
+    <p class="ket">Komposisi sentimen di tiap tipe akun (100% per baris)</p>
+    <div class="kanvas"><canvas id="g-sentimen-tipe"></canvas></div>
+  </div>
+  <div class="panel s5">
+    <h2>Emosi (Plutchik)</h2>
+    <p class="ket">Delapan emosi dasar, di luar konten tanpa emosi; media sosial</p>
+    <div class="kanvas"><canvas id="g-emosi"></canvas></div>
+  </div>
+  <div class="panel s12">
+    <h2>Contoh konten per label</h2>
+    <p class="ket">Konten media sosial dengan engagement tertinggi di tiap label. Chip biru dan merah menunjukkan kata
+       atau pola yang menentukan label, dengan bobot yang sama dengan pengklasifikasi. Berita tidak ditampilkan.</p>
+    <details class="cs-rubrik">
+      <summary>Cara sentimen ditentukan</summary>
+      <table>
+        <thead><tr><th>Penanda</th><th>Contoh</th><th class="num">Bobot</th></tr></thead>
+        <tbody>
+        {% if T.ATURAN is defined %}
+          <tr><td>Kata evaluatif positif</td><td>terima kasih, salut, hebat, semoga, sejahtera, berkah, bermanfaat, kemajuan</td><td class="num">+1 per kata</td></tr>
+          <tr><td>Emoji positif</td><td>🙏 💪 ❤️ 👍 🤲</td><td class="num">+1 per jenis</td></tr>
+          <tr><td>Doa</td><td>ya Allah, dimudahkan, aamiin</td><td class="num">+1</td></tr>
+          <tr><td>Dukungan ke proyek atau pihak</td><td>"mendukung proyek Blok Masela", "terima kasih Pak Prabowo"</td><td class="num">+2</td></tr>
+          <tr><td>Kata evaluatif negatif</td><td>gagal, korupsi, kongkalikong, rampas, kriminalisasi, tolak, ingkar janji, merugikan</td><td class="num">−1 per kata</td></tr>
+          <tr><td>Kata positif yang dinegasikan</td><td>"tidak mendukung", "belum sejahtera", "bukan berkah"</td><td class="num">−1 per kata</td></tr>
+          <tr><td>Emoji negatif</td><td>😡 🤬 🙄 👎 🤮</td><td class="num">−1 per jenis</td></tr>
+          <tr><td>Kritik ke pihak, kritik tersirat, marah</td><td>"INPEX harus …", "SKK Migas kenapa …", "bupati jangan …", "seharusnya"</td><td class="num">−2</td></tr>
+          <tr><td>Sinis</td><td>lagi-lagi, pencitraan, halah, ujung-ujungnya, cuma</td><td class="num">−1</td></tr>
+        {% else %}
+          <tr><td>Kata evaluatif positif</td><td>terima kasih, salut, hebat, sigap, semoga, syukur, relawan</td><td class="num">+1 per kata</td></tr>
+          <tr><td>Emoji positif</td><td>🙏 💪 ❤️ 👍 🤲</td><td class="num">+1 per jenis</td></tr>
+          <tr><td>Doa</td><td>ya Allah, lindungilah, dimudahkan, aamiin</td><td class="num">+1</td></tr>
+          <tr><td>Dukungan ke petugas</td><td>"salut untuk tim SAR", "Basarnas hebat"</td><td class="num">+2</td></tr>
+          <tr><td>Kata evaluatif negatif</td><td>lalai, lamban, gagal, overload, korupsi, mafia, usut, copot, memalukan</td><td class="num">−1 per kata</td></tr>
+          <tr><td>Kata positif yang dinegasikan</td><td>"tidak peduli", "tidak sigap", "tidak ada empati"</td><td class="num">−1 per kata</td></tr>
+          <tr><td>Emoji negatif</td><td>😡 🤬 🙄 👎 🤮</td><td class="num">−1 per jenis</td></tr>
+          <tr><td>Kritik ke pihak, kritik tersirat, marah</td><td>"Dishub … harus", "kenapa … diizinkan", "seharusnya", "wajib ditangkap", "empatinya di mana?"</td><td class="num">−2</td></tr>
+          <tr><td>Sinis</td><td>lagi-lagi, pencitraan, kambing hitam, halah, ujung-ujungnya</td><td class="num">−1</td></tr>
+        {% endif %}
+        </tbody>
+      </table>
+      <ol>
+        {% if T.ATURAN is defined %}
+        <li><b>Kata faktual tidak dihitung.</b> "groundbreaking", "investasi", "demo", "unjuk rasa", "ganti rugi" tidak ada di daftar mana pun; yang dihitung adalah penilaiannya.</li>
+        {% else %}
+        <li><b>Kata musibah faktual tidak dihitung.</b> "tewas", "hilang", "tenggelam", "korban", "cuaca buruk" tidak ada di daftar negatif.</li>
+        {% endif %}
+        <li><b>Duka murni dihitung netral:</b> ada penanda duka (innalillahi, 😭) tanpa penanda negatif dan skor positif paling banyak 1.</li>
+        <li>Selain itu, skor negatif lebih besar berarti <b>negatif</b>; positif lebih besar berarti <b>positif</b>; seri berarti netral.</li>
+        <li>Bila masih netral tetapi emosinya marah, muak, atau takut, label menjadi negatif; percaya atau senang menjadi positif.</li>
+      </ol>
+    </details>
+    <div class="cs" id="contoh-sentimen"><p class="memuat kerangka">Memuat</p></div>
+  </div>
+</div>
+
+<!-- 03 -->
+<h2 class="bagian" id="sna">Social network analysis (SNA)<span>Node adalah akun, edge adalah interaksi; warna edge mengikuti sentimen atau emosi unggahan <b id="sna-dibuat"></b></span></h2>
+<div class="kisi">
+  <div class="s12 sna-layar" id="sna-layar">
+  <div class="panel sna-utama">
+    <div class="sna-atas">
+      <div class="sna-tab" id="sna-tab" role="tablist">
+        <button data-mode="sentimen" class="aktif" role="tab">Menurut sentimen</button>
+        <button data-mode="emosi" role="tab">Menurut emosi</button>
+        <button data-mode="klaster" role="tab">Menurut klaster</button>
+      </div>
+      <div class="sna-atas-kanan">
+        <button id="sna-saring-buka" class="tombol hantu kecil hanya-normal" type="button" aria-expanded="false" aria-controls="sna-lanjut">
+          <svg class="ik"><use href="#ik-saring"/></svg>Filter lengkap<span class="sna-jml-filter" id="sna-jml-filter"></span></button>
+        <button id="sna-tgl-saring" class="tombol hantu kecil hanya-penuh aktif" type="button" aria-pressed="true">
+          <svg class="ik"><use href="#ik-saring"/></svg>Filter &amp; cari<span class="sna-jml-filter" id="sna-jml-filter2"></span></button>
+        <button id="sna-tgl-info" class="tombol hantu kecil hanya-penuh" type="button" aria-pressed="false">
+          <svg class="ik"><use href="#ik-info"/></svg>Info akun</button>
+        <button id="sna-penuh" class="tombol hantu kecil" type="button" title="Layar penuh (F)">
+          <svg class="ik"><use href="#ik-penuh"/></svg><span>Layar penuh</span></button>
+      </div>
+    </div>
+
+    <div class="sna-saring" id="sna-saring">
+      <div class="sw-kepala hanya-penuh"><b>Filter &amp; pencarian</b>
+        <button type="button" class="sw-tutup" data-tutup="saring" aria-label="Sembunyikan filter">×</button></div>
+      <div class="ss-baris">
+        <div class="ss-cari" id="ss-cari">
+          <div class="segmen ss-mode" id="ss-mode" role="tablist" aria-label="Cari berdasarkan">
+            <button type="button" data-v="akun" class="aktif">Akun</button>
+            <button type="button" data-v="isi">Isi unggahan</button>
+          </div>
+          <div class="ss-kolom">
+            <svg class="ik"><use href="#ik-cari"/></svg>
+            <input type="search" id="ss-q" autocomplete="off" placeholder="Cari nama akun, kanal, media, atau aktor…">
+            <ul class="ss-saran" id="ss-saran" role="listbox"></ul>
+          </div>
+        </div>
+        <div class="ss-grup">
+          <span class="kontrol-label">Hasil</span>
+          <div class="segmen" id="ss-tampil" title="Sorot: yang lain diredupkan. Saring: yang lain disembunyikan.">
+            <button type="button" data-v="sorot" class="aktif">Sorot</button>
+            <button type="button" data-v="saring">Saring</button>
+          </div>
+        </div>
+      </div>
+      <div class="ss-baris">
+        <div class="ss-grup">
+          <span class="kontrol-label">Sumber</span>
+          <div class="ss-chips" id="ss-plat"></div>
+        </div>
+      </div>
+      <div class="ss-baris" id="ss-berita-baris" hidden>
+        <label class="saklar ss-saklar"><input type="checkbox" id="ss-berita"><span class="saklar-trek"></span>
+          <span>Tampilkan peta pemberitaan<small class="ss-kecil">media ■ → aktor ◆ · abu-abu karena berita tidak dilabeli sentimen</small></span></label>
+      </div>
+      <div class="ss-lanjut" id="sna-lanjut" hidden>
+        <div class="ss-baris ss-baris-chip">
+          <div class="ss-grup"><span class="kontrol-label">Sentimen unggahan</span><div class="ss-chips" id="ss-sent"></div></div>
+          <div class="ss-grup"><span class="kontrol-label">Jenis interaksi</span><div class="ss-chips" id="ss-jenis"></div></div>
+        </div>
+        <div class="ss-grid">
+          <div class="ss-sel"><span class="kontrol-label">Topik pembicaraan (narasi)</span><select id="ss-narasi"></select></div>
+          <div class="ss-sel"><span class="kontrol-label">Aktor yang dibicarakan</span><select id="ss-aktor"></select></div>
+          <div class="ss-sel"><span class="kontrol-label">Emosi</span><select id="ss-emo"></select></div>
+          <div class="ss-sel"><span class="kontrol-label">Klaster</span><select id="ss-klaster"></select></div>
+        </div>
+        <div class="ss-baris ss-baris-akhir">
+          <div class="ss-grup"><span class="kontrol-label">Minimal interaksi per akun</span>
+            <div class="segmen" data-untuk="ss-min">
+              <button type="button" data-v="1">1</button><button type="button" data-v="2">2</button>
+              <button type="button" data-v="3">3</button><button type="button" data-v="5">5</button>
+              <button type="button" data-v="10">10</button>
+            </div><input type="hidden" id="ss-min" value="1"></div>
+          <button id="ss-reset" class="tombol hantu kecil" type="button"><svg class="ik"><use href="#ik-ulang"/></svg>Hapus semua filter</button>
+        </div>
+        <p class="ss-catatan">Isu, aktor, dan pencarian mengikuti pilihan <b>Sorot/Saring</b>. Sumber, sentimen, jenis, emosi,
+          klaster, dan minimal interaksi selalu menyaring. Berita tidak punya label sentimen dan emosi, jadi tidak terkena filter itu.</p>
+      </div>
+      <div class="ss-ringkas" id="ss-ringkas"></div>
+      <div class="sna-alat">
+      <div class="sna-alat-grup"><span class="kontrol-label">Label akun</span>
+        <div class="segmen" data-untuk="sna-label">
+          <button type="button" data-v="0">0</button><button type="button" data-v="10">10</button>
+          <button type="button" data-v="20">20</button><button type="button" data-v="40">40</button>
+        </div>
+        <input type="hidden" id="sna-label" value="20">
+      </div>
+      <label class="saklar"><input type="checkbox" id="sna-tagklaster" checked><span class="saklar-trek"></span>Nama klaster</label>
+      <button id="sna-reset" class="tombol hantu kecil" type="button"><svg class="ik"><use href="#ik-ulang"/></svg>Reset tampilan</button>
+      <span class="sna-ket">Seret untuk menggeser · gulir untuk zoom · klik akun untuk detail · Esc keluar layar penuh</span>
+    </div>
+    </div>
+
+    <div id="sna-temuan"></div>
+    <div class="sna-wadah">
+      <canvas id="graf"></canvas>
+      <div class="sna-legenda" id="sna-legenda"></div>
+      <div class="sna-zoom" role="group" aria-label="Zoom">
+        <button type="button" id="sna-zoom-masuk" title="Perbesar">+</button>
+        <button type="button" id="sna-zoom-keluar" title="Perkecil">−</button>
+        <button type="button" id="sna-zoom-pas" title="Pas ke yang tampak"><svg class="ik"><use href="#ik-pas"/></svg></button>
+      </div>
+      <div class="sna-tip" id="sna-tip"></div>
+    </div>
+  </div>
+  <div class="panel sna-insight" id="sna-insight"><p class="memuat kerangka">Memuat</p></div>
+  </div>
+  <div class="panel s12 sna-hasil" id="sna-hasil" hidden></div>
+
+  <div class="panel s12">
+    <h2>Ringkasan struktur graf</h2>
+    <p class="ket">Dihitung dari graf. Klik butir bertitik warna untuk menyorot klasternya</p>
+    <div class="sna-wawasan" id="sna-wawasan"></div>
+  </div>
+  <div class="panel s6">
+    <h2>Sentimen per klaster</h2>
+    <p class="ket">Komposisi negatif, netral, dan positif di tiap klaster</p>
+    <div class="kanvas"><canvas id="g-klaster-sent"></canvas></div>
+  </div>
+  <div class="panel s6">
+    <h2>Emosi per klaster</h2>
+    <p class="ket">Persentase tiap emosi per klaster; warna lebih pekat berarti porsi lebih besar</p>
+    <div id="sna-emo-matriks"><p class="memuat kerangka">Memuat</p></div>
+  </div>
+  <div class="panel s12">
+    <h2>Peran akun dalam graf</h2>
+    <p class="ket">In-degree, out-degree, dan betweenness. Klik nama untuk menyorotnya di graf</p>
+    <div class="sna-peran" id="sna-peran"></div>
+  </div>
+  <div class="s12"><h3 class="sub-judul">Isi tiap klaster<span>Catatan, komposisi, dan unggahan dengan suka terbanyak per klaster</span></h3></div>
+  <div class="s12 sna-klaster" id="sna-klaster"></div>
+</div>
+
+<!-- 04 -->
+<h2 class="bagian" id="narasi">Isu &amp; aktor<span>Isu dideteksi dengan kata kunci per topik</span></h2>
+<div class="kisi">
+  {% if T.FOKUS %}
+  <div class="panel s12" id="panel-fokus">
+    <h2>Lensa {{ T.FOKUS.nama }} dibanding seluruh konten</h2>
+    <p class="ket">Lensa ini mencakup konten dengan isu: {{ T.FOKUS.narasi|join(', ') }}. Angkanya menghitung semua konten
+      yang membahas isu tersebut, termasuk liputan yang mendukung proyek. Sakelar "{{ T.FOKUS.nama }}" di bilah filter
+      menyaring seluruh halaman ke konten ini.</p>
+    <div class="fokus-grid">
+      <div id="fokus-ringkas"><p class="memuat kerangka">Memuat</p></div>
+      <div><div class="kk-label">Porsi {{ per }} per platform (pekan dengan minimal 10 konten)</div><div class="kanvas"><canvas id="g-fokus"></canvas></div></div>
+    </div>
+  </div>
+  {% endif %}
+  <div class="panel s7">
+    <h2>Isu dominan</h2>
+    <p class="ket">Jumlah konten per isu; satu konten dapat masuk ke lebih dari satu isu</p>
+    <div class="kanvas tinggi"><canvas id="g-narasi"></canvas></div>
+  </div>
+  <div class="panel s5">
+    <h2>Aktor paling sering disebut</h2>
+    <p class="ket">Lembaga dan pihak yang disebut di dalam konten</p>
+    <div class="kanvas tinggi"><canvas id="g-aktor"></canvas></div>
+  </div>
+  <div class="panel s12">
+    <h2>Perubahan isu per {{ per }}</h2>
+    <p class="ket">Delapan isu terbesar, bertumpuk</p>
+    <div class="kanvas tinggi"><canvas id="g-narasi-harian"></canvas></div>
+  </div>
+</div>
+
+<!-- 05 -->
+<h2 class="bagian" id="penulis">Akun &amp; media<span>Siapa yang paling banyak mengunggah dan paling banyak mendapat respons</span></h2>
+<div class="kisi">
+  <div class="panel s4">
+    <h2>Tipe akun</h2>
+    <p class="ket">Jumlah konten per tipe akun atau media</p>
+    <div class="kanvas"><canvas id="g-tipe"></canvas></div>
+  </div>
+  <div class="panel s4">
+    <h2>Akun dan media paling produktif</h2>
+    <p class="ket">Akun atau media dengan konten terbanyak</p>
+    <div class="kanvas"><canvas id="g-penulis-volume"></canvas></div>
+  </div>
+  <div class="panel s4">
+    <h2>Engagement tertinggi</h2>
+    <p class="ket">Suka, komentar, repost, dan kutipan</p>
+    <div class="kanvas"><canvas id="g-penulis-eng"></canvas></div>
+  </div>
+  <div class="panel s6">
+    <h2>Sebaran engagement</h2>
+    <p class="ket">Jumlah konten di tiap rentang engagement</p>
+    <div class="kanvas"><canvas id="g-eng-sebaran"></canvas></div>
+  </div>
+  <div class="panel s6">
+    <h2>Konsentrasi engagement</h2>
+    <p class="ket">Porsi engagement yang dikumpulkan konten teratas</p>
+    <div id="konsentrasi"><p class="memuat kerangka">Memuat</p></div>
+  </div>
+</div>
+
+<!-- 06 -->
+<h2 class="bagian" id="bahasa">Bahasa<span>Kata dan tagar yang paling sering muncul</span></h2>
+<div class="kisi">
+  <div class="panel s7">
+    <h2>Kata paling sering</h2>
+    <p class="ket">Stopword dan nama topik dikeluarkan</p>
+    <div class="awan" id="awan-kata"></div>
+  </div>
+  <div class="panel s5">
+    <h2>Tagar</h2>
+    <p class="ket">Diambil dari teks konten</p>
+    <div class="awan" id="awan-tagar"></div>
+  </div>
+</div>
+{% endblock %}
+
+{% block skrip %}
+<script src="/static/sna.js"></script>
+<script>
+function isiKepala(r) {
+  const hari = (r.rentang || '').split(' s/d ');
+  document.getElementById('kpi').innerHTML = [
+    ['Konten dianalisis', angka(r.total), hari.length === 2 ? `${tglPendek(hari[0])} – ${tglPendek(hari[1])} 2026` : ''],
+    ['Akun dan media unik', angka(r.penulis), 'penulis berbeda'],
+    ['Engagement', ringkasAngka(r.engagement), 'suka, komentar, repost'],
+    ['Tayangan', ringkasAngka(r.jangkauan), 'views X dan reels Instagram'],
+    ['Platform', Object.keys(r.platform).length, Object.keys(r.platform).map(p => p === 'X (Twitter)' ? 'X' : p).join(', ')],
+  ].map(([l, v, s]) => `<div class="stat"><dt>${l}</dt><dd>${v}</dd><small>${aman(s)}</small></div>`).join('');
+
+  const total = Object.values(r.platform).reduce((a, b) => a + b, 0) || 1;
+  const urut = Object.keys(WARNA_PLATFORM).filter(p => r.platform[p]);
+  document.getElementById('komposisi').innerHTML = `
+    <div class="komposisi-bar" role="img" aria-label="Komposisi konten per platform">${urut.map(p =>
+      `<i style="width:${persen(r.platform[p], total)}%;background:${WARNA_PLATFORM[p]}" title="${p}: ${angka(r.platform[p])}"></i>`).join('')}</div>
+    <div class="komposisi-leg">${urut.map(p => `<span><i class="titik" style="background:${WARNA_PLATFORM[p]}"></i>${p}
+      <b>${angka(r.platform[p])}</b><em>${persen(r.platform[p], total).toFixed(0)}%</em></span>`).join('')}</div>`;
+}
+
+async function muat() {
+  const r = await ambil('/api/ringkasan');
+  isiOpsiTipe(r.opsi_tipe || []);
+  tandaiKosong(r);
+  isiKepala(r);
+
+  /* 01 waktu */
+  grafikLinimasa(await ambil('/api/linimasa'));
+  grafikKumulatif(await ambil('/api/kumulatif'));
+  const jm = await ambil('/api/jam');
+  gambarHeatmap('heatmap', jm);
+  grafikBatang('g-jam', [...Array(24).keys()].map(h => String(h).padStart(2, '0')), jm.per_jam);
+
+  /* 02 sentimen & emosi */
+  const s = await ambil('/api/sentimen');
+  isiSentimenRingkas(s);
+  grafikSentimenHarian(s.harian);
+  const st = await ambil('/api/sentimen-tipe');
+  grafikTumpuk100('g-sentimen-tipe', st.label,
+    ['negatif', 'netral', 'positif'].map(k => st.seri.find(x => x.nama === k)).filter(Boolean)
+      .map(x => ({ nama: x.nama, data: x.data, warna: WARNA_SENT[x.nama] })));
+  grafikEmosi(await ambil('/api/emosi'));
+  isiContohSentimen(await ambil('/api/contoh-sentimen'));
+
+  /* 03 jaringan */
+  muatSNA();
+
+  /* 04 narasi & aktor */
+  const n = await ambil('/api/narasi');
+  n.label.forEach(warnaNarasi);
+  if (document.getElementById('panel-fokus')) isiFokus(await ambil('/api/fokus'));
+  grafikBatangH('g-narasi', n.label, n.data);
+  const ak = await ambil('/api/aktor');
+  grafikBatangH('g-aktor', ak.label, ak.data);
+  grafikNarasiHarian(await ambil('/api/narasi-harian'));
+
+  /* 05 penulis */
+  const p = await ambil('/api/penulis');
+  grafikBatangH('g-tipe', p.tipe.label, p.tipe.data);
+  grafikBatangH('g-penulis-volume', p.volume.map(x => x.nama).slice(0, 12), p.volume.map(x => x.nilai).slice(0, 12));
+  grafikBatangH('g-penulis-eng', p.engagement.map(x => x.nama).slice(0, 12), p.engagement.map(x => x.nilai).slice(0, 12));
+  const e = await ambil('/api/engagement');
+  grafikBatang('g-eng-sebaran', e.label, e.data);
+  document.getElementById('konsentrasi').innerHTML = (e.konsentrasi || []).length
+    ? `<table><thead><tr><th>Konten teratas</th><th class="num">Porsi engagement</th><th style="width:48%"></th></tr></thead><tbody>` +
+      e.konsentrasi.map(k => `<tr><td>${k.persen}% teratas</td>
+        <td class="num"><b>${String(k.share).replace('.', ',')}%</b></td>
+        <td><div class="bar"><i style="width:${k.share}%"></i></div></td></tr>`).join('') + '</tbody></table>'
+    : '<p class="memuat">Belum ada data engagement.</p>';
+
+  /* 06 bahasa */
+  const k = await ambil('/api/kata');
+  isiAwan('awan-kata', k.kata);
+  isiAwan('awan-tagar', k.tagar);
+}
+pasangFilter(muat);
+muat();
+</script>
+{% endblock %}

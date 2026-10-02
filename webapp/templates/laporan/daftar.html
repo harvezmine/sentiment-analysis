@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<title>Daftar isi · {{ F.T.NAMA }}</title>
+<style>{{ css }}</style>
+</head>
+<body>
+<section class="toc">
+  <p class="eyebrow">{{ F.judul }} · {{ F.periode }}</p>
+  <h1 class="toc-judul">Daftar isi</h1>
+  <ol class="toc-daftar">
+    {% for b in bagian %}<li><span class="toc-no">{{ b.no }}</span><span class="toc-nama">{{ b.judul }}</span><span class="toc-titik"></span><span class="toc-hal">{{ b.hal }}</span></li>{% endfor %}
+  </ol>
+  <div class="tentang">
+    <h3>Tentang laporan ini</h3>
+    <p>Laporan ini merangkum percakapan publik tentang {{ F.T.NAMA }} di berita daring dan media sosial selama
+      {{ F.periode }}. Angka, grafik, dan graf SNA berasal dari data yang sama dengan dashboard Analisa Sentimen,
+      per {{ F.diperbarui }}.</p>
+    <p style="margin:0">{% if F.analis %}Kesimpulan dan rekomendasi di Bagian {{ no.kesimpulan }} ditulis analis setelah membaca
+      isi percakapan{% if F.kesimpulan_tanggal %} (per {{ F.kesimpulan_tanggal }}){% endif %}.{% else %}Kesimpulan di Bagian
+      {{ no.kesimpulan }} disusun dari data periode ini.{% endif %}{% if no.koordinasi %} Indikator di Bagian {{ no.koordinasi }}
+      menunjukkan pola perilaku akun, bukan bukti niat.{% endif %}</p>
+  </div>
+</section>
+</body>
+</html>

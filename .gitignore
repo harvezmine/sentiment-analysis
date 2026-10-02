@@ -1,0 +1,31 @@
+# Data hasil panen: besar dan berisi data pribadi pengguna media sosial, jadi tidak masuk git.
+# Termasuk data/_bersama/ (antrean, cache dan log AI, sampel evaluasi) dan data/<topik>/_ai/.
+# Yang tetap disimpan: nama dan catatan klaster SNA yang dikurasi (data/<topik>/sna_narasi.json).
+data/**
+!data/*/
+!data/*/sna_narasi.json
+
+# Keluaran dan log (garis miring di depan = hanya folder di akar proyek; webapp/templates/laporan/ tetap masuk)
+/laporan/
+/raw/
+/x/
+
+# Salinan lama sebelum struktur multi-topik
+/virgo-sentiment/
+
+# Claude Code (pengaturan dan catatan asisten AI, bukan bagian proyek)
+.claude/
+CLAUDE.md
+CLAUDE.local.md
+.mcp.json
+
+# Editor dan lingkungan lokal
+.vscode/
+.idea/
+.env
+.venv/
+venv/
+__pycache__/
+*.pyc
+.DS_Store
+*.log

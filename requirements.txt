@@ -1,0 +1,22 @@
+# Python 3.11+ (dikembangkan dengan 3.13)
+# Dashboard
+flask>=3.0
+jinja2>=3.1
+markupsafe>=2.1
+pandas>=2.2
+numpy>=1.26
+gunicorn>=22.0          # server produksi (Linux/macOS)
+
+# Panen dan olah data
+requests>=2.31
+beautifulsoup4>=4.12
+lxml>=5.0
+curl_cffi>=0.7          # impersonasi TLS Chrome (Instagram, Threads, berita di balik Cloudflare)
+xclienttransaction>=1.0 # header x-client-transaction-id untuk X
+networkx>=3.2
+python-louvain>=0.16    # klaster Louvain (import community)
+
+# Laporan PDF
+playwright>=1.45        # lalu: playwright install chromium (bila Google Chrome tidak terpasang)
+pypdf>=4.0
+pillow>=10.0

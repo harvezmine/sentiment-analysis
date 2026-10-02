@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="id"{% if cetak %} class="cetak"{% endif %}>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ judul }} · {{ T.NAMA if T else "Analisa Sentimen" }}</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='6' fill='%231b1b19'/%3E%3Crect x='5' y='12' width='3' height='7' rx='1' fill='%233987e5'/%3E%3Crect x='10.5' y='8' width='3' height='11' rx='1' fill='%23ebe9e3'/%3E%3Crect x='16' y='10.5' width='3' height='8.5' rx='1' fill='%23e66767'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<link rel="stylesheet" href="/static/gaya.css">
+</head>
+<body>
+<!-- ikon: satu set garis 1.5px, dipakai lewat <use> -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="ik-chevron" viewBox="0 0 16 16"><path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="ik-kalender" viewBox="0 0 16 16"><rect x="2.5" y="3.5" width="11" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M2.5 6.5h11M5.5 2v3M10.5 2v3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></symbol>
+  <symbol id="ik-ulang" viewBox="0 0 16 16"><path d="M3 8a5 5 0 1 0 1.5-3.6M3 2.5v2.5h2.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="ik-keluar" viewBox="0 0 16 16"><path d="M6 3.5H3.5v9h9V10M9 3h4v4M13 3L7.5 8.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="ik-cari" viewBox="0 0 16 16"><circle cx="7" cy="7" r="4.25" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M10.2 10.2L13.5 13.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></symbol>
+  <symbol id="ik-centang" viewBox="0 0 16 16"><path d="M3.5 8.5l3 3 6-7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="ik-saring" viewBox="0 0 16 16"><path d="M2.5 4h11M4.5 8h7M6.5 12h3" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
+  <symbol id="ik-penuh" viewBox="0 0 16 16"><path d="M2.5 6V2.5H6M10 2.5h3.5V6M13.5 10v3.5H10M6 13.5H2.5V10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="ik-penuh-keluar" viewBox="0 0 16 16"><path d="M6 2.5V6H2.5M13.5 6H10V2.5M10 13.5V10h3.5M2.5 10H6v3.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="ik-unduh" viewBox="0 0 16 16"><path d="M8 2.5v7.5M4.8 7.2L8 10.4l3.2-3.2M3 12.5h10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="ik-info" viewBox="0 0 16 16"><circle cx="8" cy="8" r="5.75" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M8 7.2v3.8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="8" cy="5" r=".95" fill="currentColor"/></symbol>
+  <symbol id="ik-pas" viewBox="0 0 16 16"><rect x="3" y="3" width="10" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="1.4" stroke-dasharray="2.2 2"/><circle cx="8" cy="8" r="1.8" fill="currentColor"/></symbol>
+  <symbol id="ik-sorot" viewBox="0 0 16 16"><circle cx="8" cy="8" r="5.25" fill="none" stroke="currentColor" stroke-width="1.4"/><circle cx="8" cy="8" r="1.8" fill="currentColor"/></symbol>
+  <symbol id="ik-atur" viewBox="0 0 16 16"><path d="M2.5 4.5h6M11.5 4.5h2M2.5 11.5h2M7.5 11.5h6" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="10" cy="4.5" r="1.6" fill="none" stroke="currentColor" stroke-width="1.4"/><circle cx="6" cy="11.5" r="1.6" fill="none" stroke="currentColor" stroke-width="1.4"/></symbol>
+  <symbol id="ik-tambah" viewBox="0 0 16 16"><path d="M8 3v10M3 8h10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
+  <symbol id="ik-merek" viewBox="0 0 24 24"><rect x="3" y="12" width="3.2" height="8" rx="1.2" fill="currentColor" opacity=".55"/><rect x="8.4" y="8" width="3.2" height="12" rx="1.2" fill="currentColor" opacity=".75"/><rect x="13.8" y="10.5" width="3.2" height="9.5" rx="1.2" fill="currentColor" opacity=".55"/><path d="M3.5 9.5l5.6-4.2 5.4 3 6-5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="ik-kapal" viewBox="0 0 24 24"><path d="M4 13.5h16l-2.2 4.2a2 2 0 0 1-1.8 1.1H8a2 2 0 0 1-1.8-1.1L4 13.5z" fill="currentColor"/><path d="M7 13.5V9h10v4.5M10 9V6h4v3" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M2 21.3c1.5 0 1.5-1 3-1s1.5 1 3 1 1.5-1 3-1 1.5 1 3 1 1.5-1 3-1 1.5 1 3 1" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" opacity=".55"/></symbol>
+</svg>
+
+<header class="bilah">
+  <div class="bilah-dalam">
+    <a class="merek" href="/">
+      <span class="merek-tanda"><svg><use href="#ik-merek"/></svg></span>
+      <span class="merek-teks"><b>Analisa Sentimen</b><small>Pemetaan percakapan publik</small></span>
+    </a>
+    {% if slug %}
+    <div class="tp" id="tp">
+      <button type="button" class="tp-tombol" id="tp-tombol" aria-haspopup="listbox" aria-expanded="false" aria-controls="tp-panel">
+        <i class="tp-titik {{ T.STATUS }}"></i>
+        <span class="tp-teks"><small>Topik analisa</small><b>{{ T.NAMA }}</b></span>
+        <svg class="ik"><use href="#ik-chevron"/></svg>
+      </button>
+      <div class="tp-panel" id="tp-panel" role="listbox" aria-label="Pilih topik">
+        <p class="tp-kepala">Pilih topik <span>{{ topik_semua|length }} analisa, metode yang sama</span></p>
+        {% for t in topik_semua %}
+        <a class="tp-item {{ 'aktif' if t.slug == slug }}" href="/{{ t.slug }}/" data-slug="{{ t.slug }}" role="option" aria-selected="{{ 'true' if t.slug == slug else 'false' }}">
+          <div class="tp-baris"><b>{{ t.nama }}</b>
+            <span class="tp-status {{ t.status }}">{{ 'Berjalan' if t.status == 'berjalan' else 'Selesai' }}</span>
+            {% if t.slug == slug %}<svg class="ik tp-centang"><use href="#ik-centang"/></svg>{% endif %}</div>
+          <p>{{ t.judul }}</p>
+          <div class="tp-meta"><span><svg class="ik"><use href="#ik-kalender"/></svg>{{ t.periode }}</span><span class="tp-jumlah" data-slug="{{ t.slug }}">memuat…</span></div>
+          <div class="tp-komposisi" data-slug="{{ t.slug }}"></div>
+        </a>
+        {% endfor %}
+        <a class="tp-baru" href="/kelola/topik-baru?dari={{ slug }}"><svg class="ik"><use href="#ik-tambah"/></svg>Topik baru</a>
+      </div>
+    </div>
+    <nav class="nav" aria-label="Halaman">
+      <a href="/{{ slug }}/" class="{{ 'aktif' if judul=='Ringkasan' }}">Ringkasan</a>
+      <span class="nav-grup" aria-label="Per platform">
+        {% for p in PLATFORM %}
+        <a href="/{{ slug }}/platform/{{ p }}" class="{{ 'aktif' if judul==p }}"><i class="titik" data-platform="{{ p }}"></i>{{ 'X' if p == 'X (Twitter)' else p }}</a>
+        {% endfor %}
+      </span>
+      <a href="/{{ slug }}/jelajah" class="{{ 'aktif' if judul=='Jelajah Data' }}">Jelajah</a>
+      <a href="/{{ slug }}/metode" class="{{ 'aktif' if judul=='Metodologi & Batasan' }}">Metode</a>
+    </nav>
+    <a class="tombol hantu kecil tombol-kelola {{ 'aktif' if judul == 'Kelola' }}" href="/{{ slug }}/kelola" title="Kelola: panen, validasi sentimen, klaster, kesimpulan, AI" aria-label="Kelola"><svg class="ik"><use href="#ik-atur"/></svg></a>
+    <div class="laporan-wadah">
+      <button type="button" class="tombol hantu kecil unduh-laporan" id="unduh-laporan" aria-haspopup="dialog"
+        aria-expanded="false" aria-controls="laporan-pop" title="Unduh laporan PDF topik ini">
+        <svg class="ik"><use href="#ik-unduh"/></svg><span>Laporan PDF</span></button>
+      <div class="laporan-pop" id="laporan-pop" role="dialog" aria-label="Unduh laporan PDF" hidden>
+        <p class="lp-judul">Laporan PDF</p>
+        <p class="lp-ket">Pilih periode laporan.</p>
+        <div class="lp-tanggal">
+          <label>Dari<input type="date" id="lp-dari"></label>
+          <label>Sampai<input type="date" id="lp-sampai"></label>
+        </div>
+        <div class="lp-preset" id="lp-preset"></div>
+        <label class="lp-ai" id="lp-ai-baris" hidden><input type="checkbox" id="lp-ai"> Tulis nama klaster dan kesimpulan dengan AI bila belum ada versi yang disetujui</label>
+        <p class="lp-ket" id="lp-info"></p>
+        <button type="button" class="tombol utama" id="lp-unduh"><svg class="ik"><use href="#ik-unduh"/></svg><span>Buat PDF</span></button>
+      </div>
+    </div>
+    <div class="status" id="status-data" title="Waktu data topik ini terakhir diperbarui"><i></i><span>Memuat…</span></div>
+    {% else %}
+    <nav class="nav" aria-label="Halaman"><a href="/" class="aktif">Semua topik</a></nav>
+    {% endif %}
+  </div>
+  {% block subnav %}{% endblock %}
+</header>
+
+{% if slug %}
+<div class="saring" id="saring"{% if tanpa_saring %} hidden{% endif %}>
+  <div class="saring-dalam">
+    <div class="kontrol">
+      <span class="kontrol-label">Platform</span>
+      <select id="f-platform">
+        <option value="semua">Semua platform</option>
+        {% for p in PLATFORM %}<option value="{{ p }}">{{ p }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="kontrol">
+      <span class="kontrol-label">Penulis</span>
+      <select id="f-tipe"><option value="semua">Semua tipe</option></select>
+    </div>
+    <div class="kontrol">
+      <span class="kontrol-label">Periode</span>
+      <div class="periode" id="periode"></div>
+      <input type="hidden" id="f-dari" value="{{ f_dari or T.JENDELA[0] }}">
+      <input type="hidden" id="f-sampai" value="{{ f_sampai or T.JENDELA[1] }}">
+    </div>
+    {% if T.FOKUS %}
+    <div class="kontrol">
+      <span class="kontrol-label">Lensa</span>
+      <label class="saklar saklar-filter" title="{{ T.FOKUS.ket }}: {{ T.FOKUS.narasi|join(', ') }}">
+        <input type="checkbox" id="f-fokus"><span class="saklar-trek"></span>{{ T.FOKUS.nama }}</label>
+    </div>
+    {% endif %}
+    <div class="saring-aksi">
+      <span class="saring-ringkas" id="saring-ringkas"></span>
+      <button id="f-reset" class="tombol hantu" type="button"><svg class="ik"><use href="#ik-ulang"/></svg>Reset</button>
+      <button id="f-terap" class="tombol utama" type="button">Terapkan filter</button>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<main>{% block isi %}{% endblock %}</main>
+
+<footer class="kaki">
+  <p>Analisa Sentimen: data dipanen dan diproses lokal dari berita daring, X, YouTube, Instagram, dan Threads.
+     Sentimen media sosial dilabeli dengan aturan kata kunci atau AI dan bisa diuji di halaman Kelola{% if slug %}; baca
+     <a href="/{{ slug }}/metode">Metodologi &amp; Batasan</a> sebelum mengutip angka{% endif %}.</p>
+</footer>
+
+<script>window.TOPIK_INFO = {{ topik_info|safe if topik_info else 'null' }}; window.CETAK = {{ 'true' if cetak else 'false' }};</script>
+<script src="/static/aplikasi.js"></script>
+{% block skrip %}{% endblock %}
+<script>pasangKontrol();</script>
+</body>
+</html>
